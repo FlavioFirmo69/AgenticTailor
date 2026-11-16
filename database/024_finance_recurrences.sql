@@ -1,0 +1,7 @@
+CREATE TABLE tailor_finance_recurrences (
+ id uuid PRIMARY KEY,client_id text NOT NULL,account_id uuid NOT NULL,description text NOT NULL,amount numeric(18,2) NOT NULL CHECK(amount<>0),day_of_month integer NOT NULL CHECK(day_of_month BETWEEN 1 AND 31),start_date date NOT NULL,end_date date CHECK(end_date>=start_date),resume_from date NOT NULL,active boolean NOT NULL DEFAULT true,counterparty text NOT NULL DEFAULT '',category text NOT NULL DEFAULT '',notes text NOT NULL DEFAULT '',case_id uuid,project_id uuid,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(client_id,id),FOREIGN KEY(client_id,account_id) REFERENCES tailor_finance_accounts(client_id,id),FOREIGN KEY(client_id,case_id) REFERENCES tailor_personal_cases(client_id,id),FOREIGN KEY(client_id,project_id) REFERENCES tailor_projects(client_id,id)
+);
+ALTER TABLE tailor_finance_transactions ADD COLUMN recurrence_id uuid,ADD COLUMN occurrence_date date,ADD COLUMN recurrence_suspended boolean NOT NULL DEFAULT false;
+ALTER TABLE tailor_finance_transactions ADD CONSTRAINT tailor_finance_recurrence_fk FOREIGN KEY(client_id,recurrence_id) REFERENCES tailor_finance_recurrences(client_id,id);
+CREATE UNIQUE INDEX tailor_finance_occurrence_unique ON tailor_finance_transactions(client_id,recurrence_id,occurrence_date) WHERE recurrence_id IS NOT NULL;
+ALTER TABLE tailor_finance_recurrences ENABLE ROW LEVEL SECURITY;REVOKE ALL ON tailor_finance_recurrences FROM PUBLIC,anon,authenticated;
