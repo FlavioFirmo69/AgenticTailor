@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.env*
+data/
+*.tsbuildinfo
+/public/pdfjs/
+
+.vercel/
+.npm-cache/
+*.log
+docs/gabriella-calendario-Q1-2027.md
+
+scripts/prepare-gabriella-*.mjs
+scripts/seed-personal-workspace.mjs
+scripts/transfer-sigma-context.mjs

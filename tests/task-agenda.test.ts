@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {taskAgendaEvent} from '../lib/task-agenda-domain.ts';import {manualEvent,available} from '../lib/domain.ts';
+const task={id:'t',title:'Task',projectId:'p',projectCode:'PRJ',dueDate:'2026-11-16',plannedStart:null,plannedEnd:null};
+test('task in agenda: scadenza, intervallo inclusivo e date mancanti',()=>{const e=taskAgendaEvent(task)!;assert.equal(e.start,'2026-11-16T00:00:00');assert.equal(e.end,'2026-11-17T00:00:00');assert.equal(taskAgendaEvent({...task,plannedStart:'2026-11-15',plannedEnd:'2026-11-18'})!.end,'2026-11-19T00:00:00');assert.equal(taskAgendaEvent({...task,dueDate:null}),null);});
+test('task informativi non bloccano la disponibilità degli appuntamenti',()=>{const e=taskAgendaEvent(task)!;assert.equal(e.blocking,false);assert.ok(available('2026-11-16',[e]).includes('2026-11-16T09:00:00'));assert.doesNotThrow(()=>manualEvent('2026-11-16T10:00:00',60,'Riunione',[e]));});

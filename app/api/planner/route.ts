@@ -1,0 +1,4 @@
+import {requirePersonalAccess} from '@/lib/access';
+import {NextRequest,NextResponse} from 'next/server';import {validClient} from '@/lib/domain';import {transact} from '@/lib/store';import {studioOverview} from '@/lib/planner-store';
+export const runtime='nodejs';
+export async function GET(req:NextRequest){try{const client=req.nextUrl.searchParams.get('client')??'';if(!validClient(client)||process.env.CLIENT_ID&&process.env.CLIENT_ID!==client)throw Error('Ambiente non abilitato.');await requirePersonalAccess(req,client);return NextResponse.json(await transact(client,async s=>{if(!s.enabledAgents?.includes('planner'))throw Error('Pianificatore non attivo per questo ambiente.');return studioOverview(client,{start:req.nextUrl.searchParams.get('start')??undefined,kind:req.nextUrl.searchParams.get('kind')??undefined});}));}catch(e){return NextResponse.json({error:(e as Error).message},{status:400});}}

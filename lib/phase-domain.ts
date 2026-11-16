@@ -1,0 +1,5 @@
+export const phaseStatuses=['Da avviare','In corso','In attesa','Completata','Non applicabile'] as const;
+export type PhaseStatus=typeof phaseStatuses[number];
+export type PhaseDeclaration={id:string;title:string;declared_status:PhaseStatus|null;status_note:string;status_version:number};
+export function computedPhaseState(tasks:{status:string}[]):PhaseStatus{if(tasks.length&&tasks.every(t=>['Completato','Non applicabile'].includes(t.status)))return 'Completata';if(tasks.some(t=>t.status==='In corso'||t.status==='Completato'))return 'In corso';if(tasks.some(t=>t.status==='In attesa'))return 'In attesa';return 'Da avviare';}
+export function validatePhaseDeclaration(b:Record<string,unknown>){if(b.status!==null&&!phaseStatuses.includes(b.status as PhaseStatus))throw Error('Stato fase non valido.');if(!Number.isInteger(b.version)||Number(b.version)<1)throw Error('Versione fase non valida.');if(typeof b.note!=='string'||b.note.length>2000)throw Error('Nota fase non valida.');if(b.status==='Non applicabile'&&!b.note.trim())throw Error('Indica il motivo di non applicabilità della fase.');return {status:b.status as PhaseStatus|null,note:b.note.trim()};}

@@ -1,0 +1,101 @@
+/* Cesare Strategy — Tailored Intelligence */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root{--navy:#102440;--accent:#4263eb;--ink:#162d4b;--teal:#4263eb;--line:#dfe5ee;--muted:#64748b}
+body{background:#f4f6fa;color:var(--ink);font-family:Inter,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2{font-family:Inter,Arial,sans-serif;font-weight:600;letter-spacing:-.7px}
+.sidebar{background:var(--navy);border-color:var(--navy);color:#fff;width:282px;padding:30px 22px}
+.brand-lockup{display:block;flex-shrink:0;letter-spacing:normal;line-height:1.5}
+.brand-lockup img{display:block;width:100%;height:auto;background:white;border-radius:8px;padding:9px 7px}
+.brand-lockup>span{display:block;padding:12px 2px 0;font-size:12px;font-weight:500;letter-spacing:.2px;color:#fff}
+.brand-lockup small{float:right;font-size:10px;font-weight:400;color:#b2c0d6}
+.workspace-label{color:#a7b8d0;margin-top:32px;letter-spacing:1.5px}
+.client-select{background:#ffffff09;border-color:#ffffff25;padding:12px 9px}
+.client-select select{color:#fff;font-weight:500}
+.client-select option{color:var(--navy);background:#fff}
+.avatar{background:#fff!important;color:var(--navy);border-radius:6px;font-weight:600}
+nav button{color:#bfccde;border-radius:7px;font-weight:400}
+nav button.selected{color:#fff;background:#ffffff13;box-shadow:inset 3px 0 var(--accent);font-weight:500}
+nav button:hover{background:#ffffff0c}
+.team-heading{color:#a6b7cf;letter-spacing:1.3px}
+.team-heading>span{color:#bccdff}
+.agent-card{background:#ffffff08;border-color:#ffffff1b;color:#fff;border-radius:9px}
+.agent-card small{color:#adbed7}
+.agent-icon{color:var(--accent);background:#edf2ff;border-radius:7px}
+.sidebar .agent-icon{background:#ffffff12;color:#d0ddff}
+.dot,.small-dot{background:#8eabff}
+.sidebar .no-agents{color:#d3dded;border-color:#ffffff30;background:#ffffff04}
+.sidebar .no-agents small{color:#a9bbd5;line-height:1.8}
+.admin-link{color:#d1ddf5;border-color:#ffffff24}
+.admin-link span{color:#a2b5cf}
+.sidebar-bottom{color:#bdcce0}
+.sidebar-bottom>div{color:#97abc8}
+header{background:white;border-color:var(--line)}
+.breadcrumb{color:#6b7e98;letter-spacing:1.5px}
+.status{color:#3555a0;border-color:#dce4fa;background:#eff3fe;border-radius:20px}
+.notice{color:#60718c;background:#edf2fa;border-color:#e0e7f3;border-radius:9px}
+.notice>span{color:var(--accent)}
+.notice b{color:#284367;font-weight:600}
+.welcome-symbol{background:#edf2fc;border-color:#dfe7fa;color:var(--navy);border-radius:18px;transform:none}
+.welcome .eyebrow{color:#7386a1}
+.welcome h2{font-weight:500}
+.suggestions button{border-color:var(--line);border-radius:10px;box-shadow:0 3px 12px #10244003}
+.suggestions button:hover{border-color:#9cafec;box-shadow:0 6px 18px #10244008}
+.suggestions button>span{color:var(--accent)}
+.suggestions em{color:#8192aa}
+.composer{border-color:#d7e0ef;border-radius:12px;box-shadow:0 6px 22px #10244005}
+.routing{color:#617795}
+.routing>span:last-child{color:#8393aa}
+.input-row button,.primary{background:var(--navy);color:white;border-radius:7px}
+.input-row button:hover,.primary:hover{background:#1d3a63}
+.composer>small{color:#7c8da5}
+.message-avatar{background:#edf2fc;color:var(--accent)}
+.user .message-avatar{background:var(--navy);color:white}
+.message-name>span{color:#627b9f}
+.user p{color:#516581}
+.slots button{border-color:#d9e3f4;background:#fff}
+.slots button span,.working{color:var(--accent)}
+.panel,.month-calendar{border-color:var(--line);border-radius:12px;box-shadow:0 4px 20px #10244003}
+.event>span,.empty button{color:var(--accent)}
+.event label,.tag{color:#3459a3;background:#edf2fc}
+pre{color:#526580;background:#f5f7fb;border-color:var(--line)}
+.instructions textarea{border-color:#d1dcee;background:white;color:var(--ink)}
+.instructions .version button{color:var(--accent)}
+.overlay{background:#0a1b3659;backdrop-filter:blur(3px)}
+.modal{border:1px solid var(--line);border-radius:14px;box-shadow:0 25px 80px #10244026;color:var(--ink)}
+.modal input,.calendar-form-row select{border-color:#d6dfec;color:var(--ink);background:white}
+.eyebrow{color:#7083a0}
+.month-weekdays{background:#f8faff}
+.month-weekdays>div{color:#71829c}
+.month-day:hover{background:#f0f4fd}
+.month-day.outside{background:#fafbfe;color:#a7b3c6}
+.is-today .day-number{background:var(--navy)}
+.calendar-chip{background:#eaf0fd;color:#2b4d85;border-left:2px solid var(--accent);border-radius:3px}
+.calendar-modal .selected-date{color:#365998}
+.calendar-modal .day-summary{background:#f1f5fc}
+.calendar-modal .all-day-toggle input,.activation-control input{accent-color:var(--accent)}
+.today-button,.calendar-navigation>button{background:#fff;border-color:#d7e0ee;color:#435c7d}
+.catalog-card{background:white;border-color:var(--line);border-radius:10px}
+.catalog-state{background:#f0f3f8;color:#61718a}
+.catalog-state.ready{background:#eaf0ff;color:#3658a2}
+.admin-shell{max-width:1500px}
+.admin-shell>header{height:auto;min-height:118px;padding:20px 40px;gap:30px;border-bottom:1px solid var(--line)}
+.brand-admin{width:190px}
+.brand-admin img{padding:0;border-radius:0}
+.brand-admin>span{color:var(--navy);font-size:10px;padding-top:7px}
+.brand-admin small{color:var(--muted);font-size:9px}
+.admin-heading{flex:1}
+.admin-shell .notice{margin-top:25px}
+.activation-table tbody tr:hover{background:#f8faff}
+@media(max-width:900px){.sidebar{width:220px;padding:25px 14px}.brand-lockup>span{font-size:11px}.brand-lockup small{font-size:9px}.admin-shell>header{padding:20px 24px;gap:20px}.brand-admin{width:145px}.admin-heading h1{font-size:20px}}
+@media(max-width:600px){.sidebar{width:100%;padding:16px;min-height:128px}.brand-lockup{width:140px}.brand-lockup img{padding:6px;border-radius:5px}.brand-lockup>span{font-size:9px;padding-top:6px}.brand-lockup small{display:none}.client-select{top:18px;right:13px;padding:8px 6px}.client-select select{width:125px;font-size:10px}.sidebar nav{margin-top:17px;gap:5px}.sidebar .admin-link{border:0;position:absolute;right:17px;top:65px;padding:0;margin:0;font-size:10px}.sidebar .admin-link span{display:none}.admin-shell>header{flex-wrap:wrap;padding:18px 20px;gap:18px}.brand-admin{width:145px}.brand-admin>span{font-size:9px}.admin-heading{order:3;flex-basis:100%}.admin-shell>header>.primary{margin-left:auto;font-size:10px;padding:10px}.admin-heading h1{font-size:22px}.admin-shell .notice{margin-top:16px}}
+/* Marchio compatto: solo sigillo e nome del prodotto. */
+.brand-lockup.compact-brand{display:flex;align-items:center;gap:10px;width:auto;min-height:40px}
+.compact-brand>.brand-emblem{display:block;position:relative;flex:0 0 40px;width:40px;height:40px;overflow:hidden;padding:0;background:transparent}
+.compact-brand .brand-emblem img{position:absolute;left:-1px;top:0;width:120px!important;max-width:none;height:40px!important;padding:0;background:transparent;border-radius:0;filter:brightness(0) invert(1)}
+.compact-brand>.brand-name{padding:0;display:block;color:#fff;font-size:16px;font-weight:500;letter-spacing:-.4px;white-space:nowrap}
+.brand-admin.compact-brand .brand-emblem img{filter:none}
+.brand-admin.compact-brand>.brand-name{color:var(--navy)}
+@media(max-width:900px){.compact-brand>.brand-name{font-size:14px}.brand-lockup.compact-brand{gap:8px}}
+@media(max-width:600px){.brand-lockup.compact-brand{width:150px;gap:7px;min-height:32px}.compact-brand>.brand-emblem{flex-basis:30px;width:30px;height:30px}.compact-brand .brand-emblem img{width:90px!important;height:30px!important;left:-1px}.compact-brand>.brand-name{font-size:12px;letter-spacing:-.3px}.brand-admin.compact-brand{width:auto}.brand-admin.compact-brand>.brand-name{font-size:14px}}
+
+.sidebar-ai{display:flex;align-items:center;gap:8px;padding:0 7px;margin:12px 0 4px;color:#a9bdd5;font-size:10px;line-height:1.5}.sidebar-ai-dot{width:5px;height:5px;border-radius:50%;background:#8c9fb7;flex-shrink:0}.sidebar-ai.connected .sidebar-ai-dot{background:#77bba7}.sidebar-ai.connected{color:#b0d7ce}@media(max-width:600px){.sidebar-ai{margin:13px 0 0;padding:0;font-size:9px}}

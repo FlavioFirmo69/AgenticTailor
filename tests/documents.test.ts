@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {documentInput,documentFile} from '../lib/documents-domain.ts';
+const input={title:'Tavola',kind:'Disegno',status:'Bozza',date:'2026-11-12',note:''};
+test('documenti: data, tipo, stato e titolo validati',()=>{assert.equal(documentInput(input).kind,'Disegno');assert.throws(()=>documentInput({...input,date:'2026-02-30'}));assert.throws(()=>documentInput({...input,status:'Valido'}));assert.throws(()=>documentInput({...input,title:''}));});
+test('documenti: PDF verificato, file attivi e vuoti rifiutati',()=>{assert.equal(documentFile('tavola.pdf',new TextEncoder().encode('%PDF-1.4')).mime,'application/pdf');assert.throws(()=>documentFile('file.pdf',new TextEncoder().encode('<html>')));assert.throws(()=>documentFile('file.html',new TextEncoder().encode('<html>')));assert.throws(()=>documentFile('file.txt',new Uint8Array()));});

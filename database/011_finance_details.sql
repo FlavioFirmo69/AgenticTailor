@@ -1,0 +1,10 @@
+ALTER TABLE tailor_finance_transactions ADD COLUMN counterparty varchar(180) NOT NULL DEFAULT '';
+ALTER TABLE tailor_finance_transactions ADD COLUMN category varchar(100) NOT NULL DEFAULT '';
+ALTER TABLE tailor_finance_transactions ADD COLUMN notes varchar(2000) NOT NULL DEFAULT '';
+ALTER TABLE tailor_finance_transactions ADD COLUMN case_id uuid;
+ALTER TABLE tailor_finance_transactions ADD COLUMN project_id uuid;
+ALTER TABLE tailor_finance_transactions ADD CONSTRAINT finance_case_scope FOREIGN KEY(client_id,case_id) REFERENCES tailor_personal_cases(client_id,id);
+ALTER TABLE tailor_finance_transactions ADD CONSTRAINT finance_project_scope FOREIGN KEY(client_id,project_id) REFERENCES tailor_projects(client_id,id);
+ALTER TABLE tailor_finance_transactions ADD CONSTRAINT finance_one_context CHECK(case_id IS NULL OR project_id IS NULL);
+CREATE INDEX ON tailor_finance_transactions(client_id,case_id);
+CREATE INDEX ON tailor_finance_transactions(client_id,project_id);

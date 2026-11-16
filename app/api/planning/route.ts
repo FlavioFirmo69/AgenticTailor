@@ -1,0 +1,8 @@
+import {requirePersonalAccess} from '@/lib/access';
+import {NextRequest,NextResponse} from 'next/server';
+import {validClient} from '@/lib/domain';import {transact} from '@/lib/store';import {isSuperuser} from '@/lib/access';
+import {readPlanning,previewPlanning,confirmPlanning} from '@/lib/planning-store';
+export const runtime='nodejs';
+function check(client:string){if(!validClient(client)||process.env.CLIENT_ID&&process.env.CLIENT_ID!==client)throw Error('Ambiente non abilitato.');}
+export async function GET(req:NextRequest){try{const client=req.nextUrl.searchParams.get('client')??'';check(client);await requirePersonalAccess(req,client);return NextResponse.json(await transact(client,async s=>{if(!s.enabledAgents?.includes('projects'))throw Error('Commesse non attivo.');return readPlanning(client,req.nextUrl.searchParams.get('project')??'');}));}catch(e){return NextResponse.json({error:(e as Error).message},{status:400});}}
+export async function POST(req:NextRequest){try{if(req.headers.get('origin')&&new URL(req.headers.get('origin')!).host!==req.headers.get('host'))throw Error('Origine non consentita.');const b=await req.json();check(b.client);await requirePersonalAccess(req,b.client);return NextResponse.json(await transact(b.client,async s=>{if(!s.enabledAgents?.includes('projects'))throw Error('Commesse non attivo.');if(b.action==='preview')return previewPlanning(b.client,b.projectId,b.input);if(b.action==='confirm')return confirmPlanning(b.client,b.projectId,b.input,b.fingerprint,await isSuperuser(req)?'Consulente · superuser demo':'Utente demo');throw Error('Operazione non valida.');}));}catch(e){return NextResponse.json({error:(e as Error).message},{status:400});}}
