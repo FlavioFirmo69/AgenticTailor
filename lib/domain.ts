@@ -5,7 +5,7 @@ export const clients = [
   {id:'writer',name:'Scrittore indipendente',subtitle:'Idee, scrittura e pubblicazioni',initials:'SI',color:'#ad7544'},
 ];
 export type ClientId = 'personal'|'dentist'|'engineering'|'writer';
-export type Event = {id:string;title:string;start:string;end:string;allDay?:boolean;source?:'second-brain'|'case'|'project'|'task'|'marketing';endKnown?:boolean;blocking?:boolean;taskId?:string;marketingId?:string;projectId?:string};
+export type Event = {id:string;title:string;start:string;end:string;allDay?:boolean;completedAt?:string;source?:'second-brain'|'case'|'project'|'task'|'marketing';endKnown?:boolean;blocking?:boolean;taskId?:string;marketingId?:string;projectId?:string};
 export type Message = {id:string;role:'user'|'assistant';text:string;agent?:string;slots?:string[];mode?:string};
 export type State = {messages:Message[];events:Event[];customMarkdown:string;versions:{text:string;at:string}[];agentInstructions?:Record<string,{markdown:string;versions:{text:string;at:string}[]}>;enabledAgents?:string[]};
 export const emptyState=():State=>({messages:[],events:[],customMarkdown:'',versions:[],enabledAgents:[]});
