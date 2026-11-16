@@ -254,3 +254,5 @@ Il clic sul titolo apre una finestra con autore, stato, dati editoriali e totali
 Le righe della bibliografia e la scheda separano vendite cartacee (brossura e copertina rigida) ed ebook. Gli altri formati o le vendite senza edizione nota restano esposti separatamente, senza inferenze. La giacenza indica sempre le copie cartacee in brossura del magazzino; il totale per ordinamento continua a comprendere tutte le copie registrate.
 
 Marketing predisposto ma disattivato: strategie versionate, copia del Markdown di stile, attività collegate e integrazione agenda senza generazione o approvazione attive. Dettagli e limiti: docs/marketing-lifecycle.md. Migrazione 021 applicata; la simulazione Gabriella resta in bozza e non crea eventi.
+
+Home personale: riepilogo Oggi e Resto della settimana fino a domenica, con fuso Europe/Rome. Riutilizza gli appuntamenti dell’agenda, il calendario storico, i task assegnati e le attività marketing approvate. Nessuna scrittura o generazione; fonti non raggiungibili segnalate come riepilogo parziale.
