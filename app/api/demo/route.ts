@@ -1,3 +1,4 @@
+import {moveCalendarEvent} from '@/lib/calendar-move';
 import {authenticatedAccount} from '@/lib/supabase-auth';
 import {requirePersonalAccess} from '@/lib/access';
 import {NextRequest,NextResponse} from 'next/server';
@@ -25,6 +26,7 @@ export async function POST(req:NextRequest){try{
  if(req.headers.get('origin')&&new URL(req.headers.get('origin')!).host!==req.headers.get('host'))throw Error('Origine non consentita.');
  const b=await req.json();clientCheck(b.client);await requirePersonalAccess(req,b.client);await ready();const instructions=await base();
  return NextResponse.json(await transact(b.client,async s=>{
+  if(b.action==='calendar-move'){if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo.');const index=s.events.findIndex(e=>e.id===b.id);if(index<0)throw Error('Appuntamento non trovato.');const old=s.events[index];if(old.start!==b.expectedStart||old.end!==b.expectedEnd)throw Error('Appuntamento aggiornato: ricarica l’agenda.');const moved=moveCalendarEvent(old,b.day,s.events);await externalCheck(b.client,moved);s.events[index]=moved;return {ok:true,event:moved};}
   if(b.action==='calendar-create'){if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo per questo cliente.');const event=manualEvent(b.start,b.duration,b.title,s.events,b.allDay??false);await externalCheck(b.client,event);s.events.push(event);return {ok:true,event};}
   if(b.action==='instructions'){if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo per questo cliente.');if(typeof b.text!=='string'||b.text.length>12000)throw Error('Istruzioni non valide.');s.customMarkdown=b.text;s.versions.push({text:b.text,at:new Date().toISOString()});return {ok:true};}
   if(b.action==='book'){if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo per questo cliente.');if(!s.messages.some(m=>m.slots?.includes(b.start)))throw Error('Seleziona uno slot proposto dal calendario.');const event=makeEvent(b.start,s.events,b.title);await externalCheck(b.client,event);s.events.push(event);s.messages.push({id:crypto.randomUUID(),role:'assistant',agent:'calendar',mode:'deterministic',text:`Appuntamento confermato per ${event.start.slice(0,10)} alle ${event.start.slice(11,16)}.`});return {ok:true};}
