@@ -43,3 +43,5 @@
 .account-email{display:block;padding:10px 0;color:#8194aa;font-size:11px;overflow-wrap:anywhere}
 
 .calendar-grid-scroll{overflow-x:auto}.week-grid{min-width:780px}.week-grid .month-day{min-height:360px}.week-grid .calendar-chip{white-space:normal;overflow:visible;line-height:1.45;padding:7px;margin-bottom:6px}.calendar-chip[draggable=true]{cursor:grab}.calendar-chip[draggable=true]:active{cursor:grabbing}.calendar-toolbar button[aria-pressed=true]{background:#173655;color:white}.month-day:has(.calendar-chip:active){outline:1px solid #b6c8df}
+
+.calendar-editor-fields{border:0;padding:0;margin:0;min-width:0}.calendar-chip{width:100%;text-align:left;border:0;font-family:inherit}.month-day:focus-visible,.calendar-chip:focus-visible{outline:2px solid #526fbc;outline-offset:-2px}
