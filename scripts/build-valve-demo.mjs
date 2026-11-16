@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';import path from 'node:path';
-const source=path.resolve('../sigma-dwg/legenda.json');const dwg=JSON.parse(await fs.readFile(source,'utf8'));
+const source=path.resolve(process.argv[2]??'data/sigma-dwg/legenda.json');const dwg=JSON.parse(await fs.readFile(source,'utf8'));
 const objects=dwg.OBJECTS,owner=x=>x.ownerhandle?.[3]??x.ownerhandle?.[2],round=n=>Number(n.toFixed(5));
 const catalog=objects.filter(x=>x.object==='BLOCK_HEADER'&&/valvola/i.test(x.name)).map(block=>{
  const paths=[];const points=[];

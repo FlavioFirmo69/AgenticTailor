@@ -16,3 +16,7 @@ I campi sono proposte per il processo Sigma, non requisiti tratti dalla norma. C
 - [ISO 14617-8:2002](https://www.iso.org/standard/33386.html?browse=ics): sostituita dalla ISO 14617-2:2025; non viene proposta come edizione corrente.
 
 Sono state consultate le schede pubbliche dei cataloghi. Il testo integrale delle norme non è stato acquistato né riprodotto. Per una libreria presentata come conforme occorre confrontare simboli e regole di applicazione con una copia autorizzata della norma pertinente. Il demo mantiene esplicita la provenienza Sigma e la verifica ancora da svolgere.
+
+## Estrazione locale
+
+L’estrazione DWG usata per rigenerare le anteprime è conservata in `data/sigma-dwg/legenda.json`, esclusa da Git. Lo script accetta anche il percorso di una diversa estrazione come primo argomento. Il catalogo JSON già generato rimane nel repository e non richiede l’estrazione per avviare il programma.

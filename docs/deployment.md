@@ -1,6 +1,6 @@
 # GitHub e Vercel
 
-Repository: `FlavioFirmo69/AgenticTailor`, pubblico per scelta del proprietario. La radice del repository coincide con `outputs/agent-studio` sul PC; su Vercel la Root Directory è la radice, non `outputs/agent-studio`.
+Repository: `FlavioFirmo69/AgenticTailor`, pubblico per scelta del proprietario. La cartella locale del repository è `C:\Sorgenti\AgenticTailor`; su Vercel la Root Directory è la radice, non `outputs/agent-studio`.
 
 ## Dati e segreti
 
