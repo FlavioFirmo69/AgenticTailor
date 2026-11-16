@@ -2,13 +2,13 @@ import {NextRequest,NextResponse} from 'next/server';
 import {agentCatalog,setAgentActivation} from '@/lib/catalog';
 import {clients,validClient} from '@/lib/domain';
 import {transact} from '@/lib/store';
-import {requireSuperuser} from '@/lib/access';
+import {requireSuperuser,isDemoSuperuser} from '@/lib/access';
 import {ready} from '@/lib/projects-store';
 export const runtime='nodejs';
 export async function GET(req:NextRequest){try{
  await requireSuperuser(req);await ready();
  const installations=await Promise.all(clients.filter(c=>!process.env.CLIENT_ID||c.id===process.env.CLIENT_ID).map(async c=>({...c,enabledAgents:await transact(c.id,s=>s.enabledAgents??[])})));
- return NextResponse.json({catalog:agentCatalog,installations,identity:{name:'Consulente',role:'superuser',mode:'local-demo'}});
+ return NextResponse.json({catalog:agentCatalog,installations,identity:{name:'Consulente',role:'superuser',mode:isDemoSuperuser(req)?'local-demo':'supabase'}});
 }catch(e){return NextResponse.json({error:(e as Error).message},{status:403});}}
 export async function POST(req:NextRequest){try{
  await requireSuperuser(req);await ready();
