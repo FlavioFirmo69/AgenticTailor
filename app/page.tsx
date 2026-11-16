@@ -1,3 +1,4 @@
 import Workspace from './Workspace';
-import {validClient} from '@/lib/domain';
-export default function Page(){const configured=process.env.CLIENT_ID??'';return <Workspace initialClient={validClient(configured)?configured:'personal'}/>;}
+import {clients,validClient} from '@/lib/domain';import {headers} from 'next/headers';import {NextRequest} from 'next/server';import {redirect} from 'next/navigation';import {isDemoSuperuser} from '@/lib/access';import {authenticatedAccount} from '@/lib/supabase-auth';
+export const dynamic='force-dynamic';
+export default async function Page(){const h=await headers();const req=new NextRequest('http://'+(h.get('host')??'localhost'),{headers:h});const local=isDemoSuperuser(req);const account=local?null:await authenticatedAccount(req);if(!local&&!account)redirect('/login');const available=clients.filter(c=>(!process.env.CLIENT_ID||c.id===process.env.CLIENT_ID)&&(local||account?.admin||account?.clients.includes(c.id)));if(!available.length)redirect('/login');const configured=process.env.CLIENT_ID??'';return <Workspace availableClients={available} initialClient={validClient(configured)&&available.some(c=>c.id===configured)?configured:available[0].id}/>;}

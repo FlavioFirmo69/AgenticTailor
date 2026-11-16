@@ -5,3 +5,6 @@ test('amministratore locale: nessun bypass su Vercel, produzione o host remoto',
 test('accesso online: soltanto email confermata dell’amministratore configurato',()=>{
  assert.equal(allowedAdmin({email:'Io@Example.com',email_confirmed_at:'2026-11-16'},'io@example.com'),true);assert.equal(allowedAdmin({email:'altro@example.com',email_confirmed_at:'2026-11-16'},'io@example.com'),false);assert.equal(allowedAdmin({email:'io@example.com'},'io@example.com'),false);assert.equal(allowedAdmin(null,'io@example.com'),false);assert.equal(allowedAdmin({email:'io@example.com',email_confirmed_at:'2026-11-16'},undefined),false);
 });
+
+import {accountCanAccess} from '../lib/auth-policy.ts';
+test('account studio limitato al proprio ambiente, amministratore trasversale',()=>{const studio={email:'demo@example.com',admin:false,clients:['engineering']};assert.equal(accountCanAccess(studio,'engineering'),true);for(const c of ['personal','dentist','writer'])assert.equal(accountCanAccess(studio,c),false);assert.equal(accountCanAccess(null,'engineering'),false);assert.equal(accountCanAccess({...studio,admin:true},'personal'),true);});
