@@ -29,6 +29,7 @@ nav button:hover{background:#ffffff0c}
 .admin-link span{color:#a2b5cf}
 .sidebar-bottom{color:#bdcce0}
 .sidebar-bottom>div{color:#97abc8}
+@media(max-width:600px){.sidebar .sidebar-bottom{display:block;padding-top:12px}}
 header{background:white;border-color:var(--line)}
 .breadcrumb{color:#6b7e98;letter-spacing:1.5px}
 .status{color:#3555a0;border-color:#dce4fa;background:#eff3fe;border-radius:20px}
