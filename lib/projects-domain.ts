@@ -23,4 +23,20 @@ export function validateDiary(value:unknown){
  const d=new Date(b.occurredOn+'T12:00:00Z');if(Number.isNaN(d.valueOf())||d.toISOString().slice(0,10)!==b.occurredOn)throw Error('Data evento non valida.');
  return {text:b.text.trim(),occurredOn:b.occurredOn};
 }
-export function isProjectRequest(text:string){return /\b(commess\w*|incarich\w*)\b/i.test(text);}
+const activeProjectsRequest=/\b(?:in corso|attiv[ei]|in lavorazione)\b/i;
+
+export function isProjectRequest(text:string){
+ if(/\b(?:commess[ae]|incaric(?:o|hi))\b/i.test(text))return true;
+ return /\bprogett[oi]\b/i.test(text)&&
+  (activeProjectsRequest.test(text)||/\b(?:elenca|mostra|quali|mi dici|miei|vedere|elenco)\b/i.test(text));
+}
+
+export function projectListAnswer(text:string,projects:Pick<Project,'code'|'title'|'status'|'dueDate'>[]):string {
+ const active=activeProjectsRequest.test(text);
+ const matching=active?projects.filter(project=>project.status==='Attiva'):projects;
+ if(!matching.length)return active?'Non ci sono commesse in corso in questo ambiente.':'Non ci sono commesse registrate in questo ambiente.';
+ const heading=active?'Commesse in corso':'Commesse registrate';
+ return heading+'\n'+matching.map(project=>
+  project.code+' · '+project.title+' · '+project.status+(project.dueDate?' · Scadenza '+project.dueDate:'')
+ ).join('\n');
+}

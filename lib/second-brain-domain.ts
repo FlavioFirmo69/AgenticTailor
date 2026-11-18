@@ -8,5 +8,5 @@ export function externalEvent(row:Record<string,unknown>):ExternalEvent{
  const start=time?date+'T'+time:date+'T00:00:00';
  return {id:'sb2:'+String(row.id),title:String(row.title),start,end:!time?next+'T00:00:00':end?date+'T'+end:start,allDay:!time,source:'second-brain',endKnown:!time||Boolean(end),location:String(row.location??''),status:String(row.status??'')};
 }
-export function checkExternalConflicts(start:string,end:string,events:ExternalEvent[]){for(const e of events){if(e.blocking===false)continue;if(!e.endKnown&&e.start.slice(0,10)===start.slice(0,10)&&end>e.start)throw Error('Un impegno in agenda non ha un orario di fine: verifica la durata prima di prenotare.');if(start<e.end&&end>e.start)throw Error('Orario già occupato da un impegno in agenda.');}}
+export function checkExternalConflicts(start:string,end:string,events:ExternalEvent[]){for(const e of events){if(e.allDay||e.blocking===false)continue;if(!e.endKnown&&e.start.slice(0,10)===start.slice(0,10)&&end>e.start)throw Error('Un impegno in agenda non ha un orario di fine: verifica la durata prima di prenotare.');if(start<e.end&&end>e.start)throw Error('Orario già occupato da un impegno in agenda.');}}
 

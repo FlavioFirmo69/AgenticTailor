@@ -1,8 +1,28 @@
 import {recurrenceSettings} from './finance-recurrence-domain';
 import {refreshRecurrences,generateRecurrences,financeToday} from './finance-recurrence-store';
+import type {AccountBalance} from './finance-domain';
 import type {PoolClient} from 'pg';import {validClient} from './domain';import {pool} from './store';import {ready} from './projects-store';import {checkCaseId} from './personal-cases-domain';import {money,financeDate,financeText,optionalFinanceText,validateAccount} from './finance-domain';
 // Il parametro dell'ambiente viene aggiunto anche alle query di inserimento.
 function scoped(c:PoolClient,client:string){return (sql:string,values:unknown[]=[])=>c.query(sql.replaceAll(':client',()=>'$'+(values.length+1)),[...values,client]);}
+export async function latestAccountBalances(client:string):Promise<AccountBalance[]>{
+ if(!validClient(client))throw Error('Ambiente non valido.');
+ await ready();
+ const result=await pool().query<AccountBalance>(
+  `SELECT a.display_name AS name,a.currency,b.balance
+   FROM tailor_finance_accounts a
+   LEFT JOIN LATERAL (
+    SELECT balance
+    FROM tailor_finance_balances
+    WHERE client_id=a.client_id AND account_id=a.id
+    ORDER BY balance_date DESC,created_at DESC,id DESC
+    LIMIT 1
+   ) b ON true
+   WHERE a.client_id=$1 AND a.is_active
+   ORDER BY a.code`,
+  [client]
+ );
+ return result.rows;
+}
 export async function finance(client:string,accountId?:string){if(!validClient(client))throw Error('Ambiente non valido.');await ready();if(accountId)checkCaseId(accountId);await refreshRecurrences(client,accountId);const c=await pool().connect();const q=scoped(c,client);try{await c.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
  const accounts=(await q("SELECT id,code,display_name AS name,currency,account_type,is_active,include_in_projection,version FROM tailor_finance_accounts WHERE client_id=:client ORDER BY CASE WHEN code='ING_CURRENT' THEN 0 ELSE 1 END,code")).rows;
  const contexts=(await q("SELECT id,'case' AS kind,code,title FROM tailor_personal_cases WHERE client_id=:client AND deleted_at IS NULL AND converted_project_id IS NULL UNION ALL SELECT id,'project' AS kind,code,title FROM tailor_projects WHERE client_id=:client ORDER BY code,title")).rows;

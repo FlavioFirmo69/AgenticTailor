@@ -1,5 +1,5 @@
 import {pool} from './store';import {ready} from './projects-store';import type {Event,State} from './domain';
-import {agendaDay,personalWeek} from './home-agenda-domain';import {taskAgendaEvent} from './task-agenda-domain';
+import {agendaDay,expiredNativeAppointment,personalWeek} from './home-agenda-domain';import {taskAgendaEvent} from './task-agenda-domain';
 import {readSecondBrain} from './second-brain-store';import {marketingAgenda} from './marketing-store';
 function key(v:unknown):asserts v is string{if(typeof v!=='string'||!/^(?:(?:task|sb2|case|project|marketing):)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v))throw Error('Attività non valida.');}
 export async function agendaCompletions(){await ready();return (await pool().query("SELECT a.event_key AS id,a.completed_at AS \"completedAt\" FROM tailor_agenda_completions a LEFT JOIN tailor_project_tasks t ON t.client_id=a.client_id AND a.event_key='task:'||t.id::text WHERE a.client_id='personal' AND a.completed_at IS NOT NULL AND (a.event_key NOT LIKE 'task:%' OR t.status='Completato')")).rows;}
@@ -27,7 +27,7 @@ export async function completeAgenda(input:Record<string,unknown>,state:State,ac
    const activity=(await marketingAgenda('personal',today,today)).find(a=>'marketing:'+a.id===eventKey);if(activity){const end=new Date(today+'T12:00:00Z');end.setUTCDate(end.getUTCDate()+1);event={id:eventKey,title:activity.channel+' · '+activity.title,start:today+'T00:00:00',end:end.toISOString().slice(0,10)+'T00:00:00',allDay:true,source:'marketing'};}
   }else if(eventKey.includes(':')){event=(await readSecondBrain('calendar',{start:today,end:today})).events.find(e=>e.id===eventKey);}
   else event=state.events.find(e=>e.id===eventKey);
-  if(!event||!agendaDay([event],today).length)throw Error('L’attività non è più presente nella tua agenda di oggi.');
+  if(!event||!agendaDay([event],today).length&&!(event.allDay&&expiredNativeAppointment(event,today)))throw Error('L’attività non è più presente nella tua agenda di oggi.');
   snapshot={event,task};
   if(task){await c.query("UPDATE tailor_project_tasks SET status='Completato',version=version+1 WHERE client_id='personal' AND id=$1",[task.id]);await c.query("INSERT INTO tailor_project_diary(id,client_id,project_id,kind,text,actor,occurred_on) VALUES($1,'personal',$2,'updated',$3,$4,(now() AT TIME ZONE 'Europe/Rome')::date)",[crypto.randomUUID(),task.projectId,'Task «'+task.title+'» completato dalla home personale.',actor]);}
   await c.query("INSERT INTO tailor_agenda_completions(client_id,event_key,completed_at,snapshot) VALUES('personal',$1,now(),$2) ON CONFLICT(client_id,event_key) DO UPDATE SET completed_at=now(),snapshot=EXCLUDED.snapshot,version=tailor_agenda_completions.version+1,updated_at=now()",[eventKey,snapshot]);

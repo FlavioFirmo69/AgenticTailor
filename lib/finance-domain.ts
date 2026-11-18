@@ -10,3 +10,31 @@ export function sumMoney(values:string[]){let total=0n;for(const v of values){co
 
 export function requireFinance(s:{enabledAgents?:string[]}){if(!s.enabledAgents?.includes('finance'))throw Error('Finanze non attivo per questo ambiente.');}
 export function isFinanceRequest(text:string){return /\b(finanz\w*|sald[oi]|cont[oi] corrent\w*|liquidit[aà]|incass\w*|pagament\w*|uscite|entrate|scadenziario)\b/i.test(text);}
+
+export function isBalanceTotalRequest(text:string){
+ if(/\b(?:previst[oi]|proiettat[oi]|futur[oi])\b/i.test(text))return false;
+ const total=/\b(?:somma|total[ei]|complessiv[oa]|in tutto)\b/i.test(text);
+ const balances=/\b(?:saldi|liquidit[aà](?!\p{L}))/iu.test(text)||(/\bsaldo\b/i.test(text)&&/\bconti\b/i.test(text));
+ return total&&balances||/\bquanto\s+(?:ho|abbiamo)\b.*\bconti\b/i.test(text);
+}
+
+export type AccountBalance = {name:string;currency:string;balance:string|null};
+
+export function balanceTotalAnswer(accounts:AccountBalance[]):string {
+ if(!accounts.length)return 'Non ci sono conti attivi registrati in questo ambiente.';
+ const byCurrency=new Map<string,string[]>();
+ const missing:string[]=[];
+ for(const account of accounts){
+  if(account.balance===null){missing.push(account.name);continue;}
+  const amounts=byCurrency.get(account.currency)??[];
+  amounts.push(account.balance);
+  byCurrency.set(account.currency,amounts);
+ }
+ const totals=[...byCurrency].sort(([a],[b])=>a.localeCompare(b)).map(([currency,amounts])=>
+  sumMoney(amounts).replace('.',',')+' '+currency
+ );
+ const summary=totals.length
+  ? [missing.length?'Totale parziale dei saldi rilevati':'Totale dei saldi rilevati',...totals].join('\n')
+  : 'Nessun saldo rilevato per i conti attivi.';
+ return missing.length?summary+'\n\nConti senza saldo rilevato: '+missing.join(', ')+'.':summary;
+}

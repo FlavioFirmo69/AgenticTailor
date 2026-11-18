@@ -9,3 +9,9 @@ Per un task della commessa, la chiusura aggiorna anche il suo stato nativo a Com
 Tutti i comandi richiedono amministratore e ambiente personale; l'origine delle richieste browser viene controllata. La risoluzione dell'evento avviene sul server: il client non può inventare titolo, data o assegnazione. Lock, transazione e stato della chiusura impediscono duplicazioni da doppio click. Il conteggio non nasconde eventuali errori delle fonti: in quel caso è indicato come parziale.
 
 Collaudo: `node scripts/verify-agenda-completion.mjs` usa appuntamenti e task temporanei identificati, rimossi al termine. Verifica chiusura/annullamento, idempotenza, concorrenza, riapertura esterna e isolamento. La prova browser di apertura del pannello, chiusura e annullamento ha usato soltanto un appuntamento temporaneo.
+
+## Appuntamenti scaduti
+
+Nell’ambiente personale, la regola si applica agli appuntamenti nativi con data iniziale dal 18 novembre 2026. La data operativa è quella di Europe/Rome. Gli appuntamenti con orario ancora aperti risultano eseguiti dal giorno successivo alla data di fine. Lo stato deriva dagli orari registrati e non richiede un processo schedulato. Una chiusura manuale ha precedenza. Nell’agenda, «Riapri appuntamento» disattiva la chiusura automatica per l’orario corrente. Un cambio di orario riapplica la regola al nuovo appuntamento.
+
+Gli eventi a tutto il giorno ancora aperti compaiono in «Da recuperare», dentro «La tua settimana», a partire dalla loro data di fine esclusiva. La lista mostra la data iniziale. Il pulsante ✓ completa l’attività e offre l’annullamento. «Riprogramma» sposta l’evento originale mantenendo identità e durata, con una nuova data da oggi in avanti. Gli elementi collegati e quelli dello storico restano soggetti alle regole dei rispettivi moduli.

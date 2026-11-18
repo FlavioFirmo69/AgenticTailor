@@ -8,3 +8,11 @@ test('date inesistenti e attività collegate respinte',()=>{assert.throws(()=>mo
 import {editCalendarEvent} from '../lib/calendar-move.ts';
 test('modifica appuntamento conserva id ed evita conflitto con se stesso',()=>{const r=editCalendarEvent(e,{start:e.start,duration:120,title:'Titolo aggiornato',allDay:false},[e]);assert.equal(r.id,e.id);assert.equal(r.title,'Titolo aggiornato');assert.equal(r.end,'2026-11-16T11:30:00');assert.equal(e.title,'Riunione');});
 test('modifica valida campi, conflitti e tutto il giorno',()=>{assert.throws(()=>editCalendarEvent(e,{start:e.start,duration:60,title:'',allDay:false},[]));assert.throws(()=>editCalendarEvent(e,{start:e.start,duration:60,title:'Riunione',allDay:false},[{...e,id:'b'}]));const r=editCalendarEvent(e,{start:e.start,duration:60,title:'Giornata',allDay:true},[{...e,id:'b'}]);assert.equal(r.start,'2026-11-16T00:00:00');assert.equal(r.end,'2026-11-17T00:00:00');assert.throws(()=>editCalendarEvent({...e,source:'task'},{start:e.start,duration:60,title:'Task',allDay:false},[]));});
+
+test('spostamento e modifica con orario consentiti in presenza di un evento tutto il giorno',()=>{
+ const allDay={...e,id:'b',allDay:true,start:'2026-11-17T00:00:00',end:'2026-11-18T00:00:00'};
+ const moved=moveCalendarEvent(e,'2026-11-17',[allDay]);
+ const edited=editCalendarEvent(e,{start:moved.start,duration:90,title:e.title,allDay:false},[allDay]);
+ assert.equal(edited.start,'2026-11-17T09:30:00');
+ assert.equal(edited.end,'2026-11-17T11:00:00');
+});
