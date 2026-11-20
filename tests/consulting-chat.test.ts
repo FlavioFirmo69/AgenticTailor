@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {consultingIntent,consultingSummary,consultingSwitchTaskId,findConsultingProject,recentConsultingProject,switchDate} from '../lib/consulting-chat.ts';
+import {consultingIntent,consultingSummary,findConsultingProject,recentConsultingProject,switchDate} from '../lib/consulting-chat.ts';
 import type {WorkPhase,WorkTask} from '../lib/workflow-domain.ts';
 
 const project={id:'fruit',code:'FRUITMIGRAZIONE',title:'Spostare Business e Fruit sul nuovo server',status:'In attesa' as const};
@@ -31,11 +31,4 @@ test('riepilogo per fase include solo task ancora aperti',()=>{
  assert.match(summary,/Trasferimento\n• Attività aperta · In attesa/);
  assert.match(summary,/Switch fissato per il 2026-12-15/);
  assert.doesNotMatch(summary,/Attività chiusa|Ignorata/);
-});
-
-test('il riferimento allo switch compare sul task univoco e non indovina fra più task',()=>{
- const task={id:'switch-date',title:'Fissare data switch'};
- assert.equal(consultingSwitchTaskId([{id:'other',title:'Contabilizzazione Fruit'},task]),task.id);
- assert.equal(consultingSwitchTaskId([{id:'2',title:'Fissare la data dello switch'},task]),undefined);
- assert.equal(consultingSwitchTaskId([{id:'other',title:'Verificare lo switch'}]),undefined);
 });

@@ -3,7 +3,7 @@ export const taskStatuses=['Da fare','In corso','In attesa','Completato','Non ap
 export type TeamMember={id:string;name:string;email:string;role:string;active:boolean;version:number;demo:boolean};
 export type ModelPhase={title:string;tasks:{title:string;role:string;required:boolean;estimate?:{type:'fixed'|'percent';value:number}}[]};
 export type WorkflowModel={id:string;name:string;version:number;description:string;phases:ModelPhase[];hoursPerDay:number};
-export type WorkTask={id:string;title:string;assigneeId:string|null;expectedRole:string;required:boolean;status:typeof taskStatuses[number];dueDate:string|null;note:string;version:number;estimate?:{type:'fixed'|'percent';value:number}|null};
+export type WorkTask={id:string;title:string;phaseId?:string;assigneeId:string|null;expectedRole:string;required:boolean;status:typeof taskStatuses[number];dueDate:string|null;note:string;version:number;estimate?:{type:'fixed'|'percent';value:number}|null};
 export type WorkPhase=PhaseDeclaration&{position:number;tasks:WorkTask[]};
 export function validateMember(b:Record<string,unknown>){
  if(typeof b.name!=='string'||!b.name.trim()||b.name.trim().length>160||typeof b.role!=='string'||!b.role.trim()||b.role.length>120||typeof b.email!=='string'||b.email.length>254||typeof b.active!=='boolean')throw Error('Anagrafica non valida.');

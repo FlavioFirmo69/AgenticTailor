@@ -1,6 +1,6 @@
 import type {Message} from './domain.ts';
 import type {Project} from './projects-domain.ts';
-import type {WorkPhase,WorkTask} from './workflow-domain.ts';
+import type {WorkPhase} from './workflow-domain.ts';
 
 const statusQuestion=/^(?:(?:com\s*['’]?\s*[eè]|come\s+(?:va|procede))\s+(?:(?:la\s+)?situazione\s+)?|a\s+che\s+punto\s+(?:siamo|è)\s+)(?:(?:di|del(?:la)?|con|per)\s+)?(.+?)\s*[?!]?$|^(?:quali sono le\s+|mostra le\s+)?attivit[aà]\s+(?:aperte|da fare)\s+(?:di|per|della)\s+(.+?)\s*[?!]?$/i;
 const switchCommand=/^(?:ho\s+)?(?:fissato|fissa|registra)\s+(?:lo\s+)?switch\b(.*)$/i;
@@ -36,11 +36,6 @@ export function switchDate(text:string):string|undefined {
  const local=input.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
  const date=iso??(local?local[3]+'-'+local[2].padStart(2,'0')+'-'+local[1].padStart(2,'0'):undefined);
  if(date&&Number.isFinite(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date)return date;
-}
-
-export function consultingSwitchTaskId(tasks:readonly Pick<WorkTask,'id'|'title'>[]):string|undefined {
- const matches=tasks.filter(task=>/^fissare (?:la )?data (?:(?:del|dello) )?switch$/i.test(task.title.trim().replace(/\s+/g,' ')));
- return matches.length===1?matches[0].id:undefined;
 }
 
 export function consultingSummary(project:ProjectRef,phases:WorkPhase[],scheduledSwitch?:string):string {
