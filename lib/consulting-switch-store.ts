@@ -1,9 +1,10 @@
+import type {PoolClient} from 'pg';
 import {pool} from './store';
 import {ready} from './projects-store';
 
-export async function scheduledConsultingSwitch(client:string,projectId:string):Promise<string|undefined>{
+export async function scheduledConsultingSwitch(client:string,projectId:string,db:Pick<PoolClient,'query'>=pool()):Promise<string|undefined>{
  await ready();
- const result=await pool().query<{date:string}>(`SELECT to_char(event_date,'YYYY-MM-DD') AS date
+ const result=await db.query<{date:string}>(`SELECT to_char(event_date,'YYYY-MM-DD') AS date
   FROM tailor_project_events WHERE client_id=$1 AND project_id=$2 AND status='planned'
   AND source_snapshot->>'kind'='consulting-switch' ORDER BY created_at DESC,id DESC LIMIT 1`,[client,projectId]);
  return result.rows[0]?.date;
