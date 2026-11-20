@@ -2,6 +2,14 @@ import {bookSalesPeriod} from './book-sales-period';
 import {stockBalance} from './book-stock-store';
 import {comparePublications} from './book-sales-domain';
 import {pool} from './store';import {ready} from './projects-store';
+export async function linkedBookTitles(bookIds:string[]):Promise<Record<string,string>>{
+ if(!bookIds.length)return {};
+ const {rows}=await pool().query<{id:string;title:string}>(
+  "SELECT id,title FROM tailor_publications WHERE client_id='personal' AND id=ANY($1::uuid[])",
+  [bookIds]
+ );
+ return Object.fromEntries(rows.map(book=>[book.id,book.title]));
+}
 export async function editorialBooks(){
  await ready();
  return (await pool().query<{id:string;title:string;code:string;previousTitles:string[]}>(

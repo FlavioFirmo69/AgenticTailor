@@ -1,13 +1,16 @@
 import {NextRequest,NextResponse} from 'next/server';import {requireSuperuser} from '@/lib/access';import {agendaCompletions,completeAgenda} from '@/lib/agenda-completion-store';import {transact} from '@/lib/store';
 import {expiredNativeAppointment,overdueAllDayAppointments,personalWeek} from '@/lib/home-agenda-domain';
 import {moveCalendarEvent} from '@/lib/calendar-move';
+import {linkedBookTitles} from '@/lib/publications-store';
 export const runtime='nodejs';
 function client(value:unknown){if(value!=='personal'||process.env.CLIENT_ID&&process.env.CLIENT_ID!=='personal')throw Error('Ambiente personale richiesto.');}
-export async function GET(req:NextRequest){try{await requireSuperuser(req);client(req.nextUrl.searchParams.get('client'));return NextResponse.json(await transact('personal',async s=>{
+export async function GET(req:NextRequest){try{await requireSuperuser(req);client(req.nextUrl.searchParams.get('client'));const result=await transact('personal',async s=>{
  const completed=await agendaCompletions();
  const overdue=s.enabledAgents?.includes('calendar')?overdueAllDayAppointments(s.events,new Set(completed.map(e=>e.id)),personalWeek().start):[];
  return {completed,events:s.events,overdue};
- }),{headers:{'Cache-Control':'private, no-store'}});}catch(e){return NextResponse.json({error:(e as Error).message},{status:400});}}
+ });
+ const bookIds=[...new Set(result.events.flatMap(event=>event.bookId?[event.bookId]:[]))];
+ return NextResponse.json({...result,bookTitles:await linkedBookTitles(bookIds)},{headers:{'Cache-Control':'private, no-store'}});}catch(e){return NextResponse.json({error:(e as Error).message},{status:400});}}
 export async function POST(req:NextRequest){try{await requireSuperuser(req);if(req.headers.get('origin')&&new URL(req.headers.get('origin')!).host!==req.headers.get('host'))throw Error('Origine non consentita.');const b=await req.json();client(b.client);return NextResponse.json(await transact('personal',async s=>{
  if(b.action!=='reschedule')return completeAgenda(b,s,'Amministratore');
  if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo.');
