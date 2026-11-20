@@ -19,6 +19,9 @@ import {isFinanceRequest,isBalanceTotalRequest,financeAnswer} from '@/lib/financ
 import {automaticCompletionDate,personalWeek} from '@/lib/home-agenda-domain';
 import {editorialBooks} from '@/lib/publications-store';
 import {editorialPlanReply,handlesEditorialRequest,isEditorialRequest} from '@/lib/editorial-plan';
+import {consultingIntent,consultingSummary,findConsultingProject,recentConsultingProject,switchDate} from '@/lib/consulting-chat';
+import {scheduledConsultingSwitch,saveConsultingSwitch} from '@/lib/consulting-switch-store';
+import {workflow} from '@/lib/workflow-store';
 export const runtime='nodejs';
 export const maxDuration=60;
 async function externalCheck(client:string,event:{start:string;end:string;allDay?:boolean}){if(event.allDay||client!=='personal'||!secondBrainConfigured())return;let result;try{result=await readSecondBrain('calendar',{start:event.start.slice(0,10),end:event.end.slice(0,10)});}catch{throw Error('Impossibile verificare il calendario Second Brain. Riprova prima di prenotare.');}checkExternalConflicts(event.start,event.end,result.events);}
@@ -60,6 +63,31 @@ export async function POST(req:NextRequest){try{
     s.messages.push({id:crypto.randomUUID(),role:'user',text},{id:crypto.randomUUID(),role:'assistant',agent:'editorial',mode:'deterministic',text:reply});
     return {ok:true};
    }
+  }
+  const consulting=b.client==='personal'?consultingIntent(text):undefined;
+  if(consulting&&s.enabledAgents?.includes('projects')){
+   await requireSuperuser(req);
+   const projects=await listProjects(b.client);
+   const project=consulting.kind==='status'
+    ?findConsultingProject(consulting.name,projects)
+    :projects.find(p=>p.id===recentConsultingProject(s.messages)&&['Attiva','In attesa'].includes(p.status));
+   let reply:string;
+   if(!project){
+    reply=consulting.kind==='status'?'Non trovo una commessa aperta univoca. Scrivi il codice o il titolo della commessa.':'Prima indica la commessa chiedendo, ad esempio, «Com’è la situazione di FRUITMIGRAZIONE?».';
+   }else if(consulting.kind==='status'){
+    const [{phases},scheduled]=await Promise.all([workflow(b.client,project.id),scheduledConsultingSwitch(b.client,project.id)]);
+    reply=consultingSummary(project,phases,scheduled);
+   }else{
+    const date=switchDate(consulting.details);
+    if(!date)reply='Indica la data completa dello switch, per esempio «Fissato lo switch in data 15/12/2026».';
+    else{
+     const result=await saveConsultingSwitch(b.client,project.id,date,'Conversazione');
+     const action=result==='unchanged'?'Switch già registrato':result==='rescheduled'?'Switch riprogrammato':'Switch registrato';
+     reply=action+' per il '+date+' nella commessa «'+project.title+'». Lo trovi in agenda e nel diario della commessa.';
+    }
+   }
+   s.messages.push({id:crypto.randomUUID(),role:'user',text},{id:crypto.randomUUID(),role:'assistant',agent:'consulting',mode:'deterministic',text:reply,consultingProjectId:project?.id});
+   return {ok:true};
   }
   const agent=(isBalanceTotalRequest(text)||s.enabledAgents?.includes('finance')&&isFinanceRequest(text))?'finance':s.enabledAgents?.includes('visits')&&/sopralluog|verbali? di visita/i.test(text)?'visits':s.enabledAgents?.includes('planner')&&isPlannerRequest(text)?'planner':isProjectRequest(text)?'projects':s.enabledAgents?.includes('calendar')?route(text,previous):'general';const user:Message={id:crypto.randomUUID(),role:'user',text};
   let answer:Message={id:crypto.randomUUID(),role:'assistant',text:'',mode:'demo'};

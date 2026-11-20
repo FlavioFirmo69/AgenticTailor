@@ -36,7 +36,7 @@ export default function Workspace({initialClient='personal',availableClients=ini
  }
  const personal=client==='personal';
  const active=data?.clients.find(c=>c.id===client)??initialClients.find(c=>c.id===client)!;
- const financeEnabled=Boolean(data?.enabledAgents.includes('finance'));const last=data?.messages.at(-1);const calendarEnabled=Boolean(data?.enabledAgents.includes('calendar'));const projectsEnabled=Boolean(data?.enabledAgents.includes('projects'));const plannerEnabled=Boolean(data?.enabledAgents.includes('planner'));const visitsEnabled=Boolean(data?.enabledAgents.includes('visits'));const agentName=(id?:string)=>id==='editorial'?'Piano editoriale':id==='finance'?'Finanze':id==='visits'?'Sopralluogo':id==='planner'?'Pianificatore':id==='projects'?'Commesse':id==='calendar'?'Calendario':'Assistente generale';
+ const financeEnabled=Boolean(data?.enabledAgents.includes('finance'));const last=data?.messages.at(-1);const calendarEnabled=Boolean(data?.enabledAgents.includes('calendar'));const projectsEnabled=Boolean(data?.enabledAgents.includes('projects'));const plannerEnabled=Boolean(data?.enabledAgents.includes('planner'));const visitsEnabled=Boolean(data?.enabledAgents.includes('visits'));const agentName=(id?:string)=>id==='consulting'?'Consulenza e sviluppi':id==='editorial'?'Piano editoriale':id==='finance'?'Finanze':id==='visits'?'Sopralluogo':id==='planner'?'Pianificatore':id==='projects'?'Commesse':id==='calendar'?'Calendario':'Assistente generale';
  const lastMessageId=last?.id;
  useEffect(()=>{
   const messages=messagesRef.current,latest=latestMessageRef.current;
