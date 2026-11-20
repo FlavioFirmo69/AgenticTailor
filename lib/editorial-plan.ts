@@ -5,6 +5,8 @@ export type EditorialBook={id:string;title:string;code:string;previousTitles?:st
 type Step={key:string;title:string;date:string};
 export type EditorialDraft={book:EditorialBook;steps:Step[];paperbackOnly?:boolean};
 const confirmation=/^\s*(?:s[iì][,!]?\s*)?(?:puoi\s+)?(?:generarli|generarle|genera(?:li|le| gli eventi| gli appuntamenti| le attivit[aà]| il piano)?|confermo il piano|crea gli eventi)[.!]?\s*$/i;
+const saveConfirmation=/^\s*(?:ora\s+)?(?:(?:vorrei|voglio|puoi)\s+)?(?:salvare|salva|inserire|inserisci|aggiungere|aggiungi)\s+(?:queste|le)\s+attivit[aà]\s+(?:in\s+agenda|nell['’]agenda)[.!]?\s*$/i;
+const confirmsPlan=(text:string)=>confirmation.test(text)||saveConfirmation.test(text);
 const paperbackRequest=/\b(?:solo|soltanto|esclusivamente)\s+(?:in\s+)?cartace[oa]\b/i;
 const names=(book:EditorialBook)=>[book.title,book.code,...(book.previousTitles??[])];
 const publication=/\b(?:pubblic\w*|piano editoriale|piano del romanzo|uscita)\b/i;
@@ -13,7 +15,7 @@ const startPlan=(text:string)=>publication.test(text)&&bookTerms.test(text);
 const revision=/^(?:aggiungi|aggiungo|inserisci|devo anche|aggiorna le date|sposta)\b/i;
 export const isEditorialRequest=(text:string,previousAgent?:string,hasDraft=false)=>{
  if(/\bstrategi\w*\b/i.test(text))return false;
- return startPlan(text)||previousAgent==='editorial'||(hasDraft&&proofQuantity(text)!==undefined);
+ return startPlan(text)||previousAgent==='editorial'||(hasDraft&&(confirmsPlan(text)||proofQuantity(text)!==undefined));
 };
 
 function businessDays(from:string,count:number){
@@ -57,7 +59,7 @@ function findBook(text:string,books:EditorialBook[]){
 }
 export function handlesEditorialRequest(text:string,books:EditorialBook[]){
  const input=normalize(text);
- return startPlan(text)||confirmation.test(text)||revision.test(text)||proofQuantity(text)!==undefined||books.some(book=>names(book).some(value=>normalize(value)===input));
+ return startPlan(text)||confirmsPlan(text)||revision.test(text)||proofQuantity(text)!==undefined||books.some(book=>names(book).some(value=>normalize(value)===input));
 }
 function proofQuantity(text:string){
  const numbers:Record<string,number>={una:1,un:1,due:2,tre:3,quattro:4,cinque:5,sei:6,sette:7,otto:8,nove:9,dieci:10};
@@ -75,7 +77,7 @@ export function editorialPlanReply(state:State,text:string,books:EditorialBook[]
  const draft=state.editorialDraft;
  const selectedPaperback=paperbackRequest.test(text);
  if(selectedPaperback&&startPlan(text))state.editorialPaperbackPending=true;
- if(confirmation.test(text)){
+ if(confirmsPlan(text)){
   if(!draft)return 'Non ci sono attività editoriali in bozza da generare.';
   if(!state.enabledAgents?.includes('calendar'))return 'Attiva Calendario per generare le attività in agenda.';
   if(!books.some(book=>book.id===draft.book.id))return 'La scheda del libro non è più disponibile.';

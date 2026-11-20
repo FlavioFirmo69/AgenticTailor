@@ -71,3 +71,21 @@ test('la richiesta di acquistare 3 copie in bozza resta nel piano dopo un ripieg
  editorialPlanReply(state,request,[book],now);
  assert.equal(state.editorialDraft!.steps.filter(step=>step.key==='order-proof').length,1);
 });
+
+test('salvare queste attività in agenda conferma la bozza invece di elencare gli appuntamenti',()=>{
+ const state=emptyState();
+ state.enabledAgents=['calendar'];
+ editorialPlanReply(state,'Pianifica la pubblicazione del romanzo '+book.title,[book],now);
+ editorialPlanReply(state,"Aggiungo: inserisci l'acquisto di 3 copie in bozza dopo aver controllato lo stato della libreria KDP",[book],now);
+ const request="ora vorrei salvare queste attività nell'agenda";
+ assert.equal(isEditorialRequest(request,'calendar',true),true);
+ assert.equal(handlesEditorialRequest(request,[book]),true);
+ assert.equal(isEditorialRequest(request,'calendar',false),false);
+ assert.equal(handlesEditorialRequest('Mostrami gli appuntamenti in agenda',[book]),false);
+ assert.equal(handlesEditorialRequest("Non salvare queste attività nell’agenda",[book]),false);
+ assert.match(editorialPlanReply(state,request,[book],now),/Create 8 attività/);
+ assert.equal(state.events.length,8);
+ assert.ok(state.events.every(event=>event.bookId===book.id));
+ assert.match(editorialPlanReply(state,request,[book],now),/Non ci sono/);
+ assert.equal(state.events.length,8);
+});
