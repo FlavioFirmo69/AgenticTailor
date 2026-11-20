@@ -17,6 +17,8 @@ import {secondBrainConfigured,readSecondBrain} from '@/lib/second-brain-store';
 import {checkExternalConflicts} from '@/lib/second-brain-domain';
 import {isFinanceRequest,isBalanceTotalRequest,financeAnswer} from '@/lib/finance-agent';
 import {automaticCompletionDate,personalWeek} from '@/lib/home-agenda-domain';
+import {editorialBooks} from '@/lib/publications-store';
+import {editorialPlanReply,handlesEditorialRequest,isEditorialRequest} from '@/lib/editorial-plan';
 export const runtime='nodejs';
 export const maxDuration=60;
 async function externalCheck(client:string,event:{start:string;end:string;allDay?:boolean}){if(event.allDay||client!=='personal'||!secondBrainConfigured())return;let result;try{result=await readSecondBrain('calendar',{start:event.start.slice(0,10),end:event.end.slice(0,10)});}catch{throw Error('Impossibile verificare il calendario Second Brain. Riprova prima di prenotare.');}checkExternalConflicts(event.start,event.end,result.events);}
@@ -49,7 +51,17 @@ export async function POST(req:NextRequest){try{
   if(b.action==='instructions'){if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo per questo cliente.');if(typeof b.text!=='string'||b.text.length>12000)throw Error('Istruzioni non valide.');s.customMarkdown=b.text;s.versions.push({text:b.text,at:new Date().toISOString()});return {ok:true};}
   if(b.action==='book'){if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo per questo cliente.');if(!s.messages.some(m=>m.slots?.includes(b.start)))throw Error('Seleziona uno slot proposto dal calendario.');const event=makeEvent(b.start,s.events,b.title);await externalCheck(b.client,event);s.events.push(event);s.messages.push({id:crypto.randomUUID(),role:'assistant',agent:'calendar',mode:'deterministic',text:`Appuntamento confermato per ${event.start.slice(0,10)} alle ${event.start.slice(11,16)}.`});return {ok:true};}
   if(b.action!=='chat'||typeof b.text!=='string'||!b.text.trim()||b.text.length>4000)throw Error('Messaggio non valido.');
-  const text=b.text.trim();const previous=[...s.messages].reverse().find(m=>m.role==='assistant');const agent=(isBalanceTotalRequest(text)||s.enabledAgents?.includes('finance')&&isFinanceRequest(text))?'finance':s.enabledAgents?.includes('visits')&&/sopralluog|verbali? di visita/i.test(text)?'visits':s.enabledAgents?.includes('planner')&&isPlannerRequest(text)?'planner':isProjectRequest(text)?'projects':s.enabledAgents?.includes('calendar')?route(text,previous):'general';const user:Message={id:crypto.randomUUID(),role:'user',text};
+  const text=b.text.trim();const previous=[...s.messages].reverse().find(m=>m.role==='assistant');
+  if(b.client==='personal'&&isEditorialRequest(text,previous?.agent)){
+   await requireSuperuser(req);
+   const books=await editorialBooks();
+   if(handlesEditorialRequest(text,books)){
+    const reply=editorialPlanReply(s,text,books);
+    s.messages.push({id:crypto.randomUUID(),role:'user',text},{id:crypto.randomUUID(),role:'assistant',agent:'editorial',mode:'deterministic',text:reply});
+    return {ok:true};
+   }
+  }
+  const agent=(isBalanceTotalRequest(text)||s.enabledAgents?.includes('finance')&&isFinanceRequest(text))?'finance':s.enabledAgents?.includes('visits')&&/sopralluog|verbali? di visita/i.test(text)?'visits':s.enabledAgents?.includes('planner')&&isPlannerRequest(text)?'planner':isProjectRequest(text)?'projects':s.enabledAgents?.includes('calendar')?route(text,previous):'general';const user:Message={id:crypto.randomUUID(),role:'user',text};
   let answer:Message={id:crypto.randomUUID(),role:'assistant',text:'',mode:'demo'};
   if(agent==='finance'){await requireSuperuser(req);answer.agent='finance';answer.mode='deterministic';answer.text=s.enabledAgents?.includes('finance')?await financeAnswer(b.client,text):'Il modulo Finanze non è attivo in questo ambiente.';}else if(agent==='visits'){answer.agent='visits';answer.mode='deterministic';const d=await visitsData(b.client);answer.text=d.visits.map(v=>v.date+' · '+v.title+' · '+v.status).join('\n')||'Nessun sopralluogo registrato.';answer.text+='\n\nApri Sopralluoghi per consultare visite, fotografie e verbali. Le immagini non sono analizzate automaticamente.';}else if(agent==='planner'){answer.agent='planner';answer.mode='deterministic';const overview=await studioOverview(b.client);const person=overview.people.find(p=>text.toLowerCase().includes(p.name.replace(/\s*\(demo\)/i,'').toLowerCase()));const tasks=overview.tasks.filter(t=>t.periodMinutes>0&&(!person||t.assigneeId===person.id));answer.text=`Pianificazione dal ${overview.period.start} al ${overview.period.end}: ${overview.projects.length} commesse in carico, ${tasks.length} attività${person?' per '+person.name:''}, ${(tasks.reduce((s,t)=>s+t.periodMinutes,0)/60).toLocaleString('it-IT')} ore pianificate nel periodo.\n\n`+tasks.slice(0,8).map(t=>`${t.projectCode} · ${t.title} · ${t.assignee} · ${(t.periodMinutes/60).toLocaleString('it-IT')} h · ${t.status}`).join('\n')+`\n\n${overview.alerts.length} segnalazioni complessive. Apri Pianificatore per le viste Studio, Persone e Attività. I vincoli personali non sono ancora verificati.`;}else if(agent==='projects'){
    answer.agent='projects';answer.mode='deterministic';

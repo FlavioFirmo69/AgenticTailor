@@ -1,3 +1,5 @@
+import type {EditorialDraft} from './editorial-plan';
+
 export const clients = [
   {id:'personal',name:'Il mio ambiente',subtitle:'Consulenza, sviluppi e scrittura',initials:'IO',color:'#173655'},
   {id:'dentist',name:'Studio dentistico',subtitle:'Cura, appuntamenti e relazione',initials:'SD',color:'#117d72'},
@@ -5,15 +7,17 @@ export const clients = [
   {id:'writer',name:'Scrittore indipendente',subtitle:'Idee, scrittura e pubblicazioni',initials:'SI',color:'#ad7544'},
 ];
 export type ClientId = 'personal'|'dentist'|'engineering'|'writer';
-export type Event = {id:string;title:string;start:string;end:string;allDay?:boolean;completedAt?:string;autoCompletionReopened?:boolean;completionKind?:'automatic';source?:'second-brain'|'case'|'project'|'task'|'marketing';endKnown?:boolean;blocking?:boolean;taskId?:string;marketingId?:string;projectId?:string};
+export type Event = {id:string;title:string;start:string;end:string;allDay?:boolean;completedAt?:string;autoCompletionReopened?:boolean;completionKind?:'automatic';source?:'second-brain'|'case'|'project'|'task'|'marketing';endKnown?:boolean;blocking?:boolean;taskId?:string;caseLink?:{id:string;area:'personal'|'consulting'};marketingId?:string;bookId?:string;projectId?:string};
 type CalendarIntent = 'list'|'availability';
 export type Message = {id:string;role:'user'|'assistant';text:string;agent?:string;slots?:string[];calendarIntent?:CalendarIntent;mode?:string};
-export type State = {messages:Message[];events:Event[];customMarkdown:string;versions:{text:string;at:string}[];agentInstructions?:Record<string,{markdown:string;versions:{text:string;at:string}[]}>;enabledAgents?:string[]};
+export type State = {messages:Message[];events:Event[];customMarkdown:string;versions:{text:string;at:string}[];agentInstructions?:Record<string,{markdown:string;versions:{text:string;at:string}[]}>;enabledAgents?:string[];editorialDraft?:EditorialDraft;editorialPaperbackPending?:boolean};
 export function resetConversation(state:State,lastMessageId:unknown):void {
  const last=state.messages.at(-1);
  if(!last)return;
  if(last.id!==lastMessageId)throw Error('La conversazione è cambiata. Ricarica la pagina prima di ripartire.');
  state.messages=[];
+ delete state.editorialDraft;
+ delete state.editorialPaperbackPending;
 }
 
 export function generalConversationHistory(messages:Message[]):Message[]{

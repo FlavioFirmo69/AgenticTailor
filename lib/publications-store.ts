@@ -2,6 +2,16 @@ import {bookSalesPeriod} from './book-sales-period';
 import {stockBalance} from './book-stock-store';
 import {comparePublications} from './book-sales-domain';
 import {pool} from './store';import {ready} from './projects-store';
+export async function editorialBooks(){
+ await ready();
+ return (await pool().query<{id:string;title:string;code:string;previousTitles:string[]}>(
+  `SELECT p.id,p.title,p.code,
+   ARRAY(SELECT DISTINCT h.snapshot #>> '{before,title}' FROM tailor_book_brief_history h
+    WHERE h.client_id=p.client_id AND h.book_id=p.id AND h.snapshot #>> '{before,title}' IS NOT NULL) AS "previousTitles"
+   FROM tailor_publications p JOIN tailor_book_briefs b ON b.client_id=p.client_id AND b.book_id=p.id
+   WHERE p.client_id='personal' ORDER BY p.title,p.id`
+ )).rows;
+}
 export async function publications(){await ready();const c=await pool().connect();try{await c.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
 const books=(await c.query("SELECT id,code,title,author_id AS \"authorId\",author_name AS author,status,to_char(publication_date,'YYYY-MM-DD') AS \"publicationDate\",date_precision AS \"datePrecision\",genre,synopsis,format_notes AS \"formatNotes\" FROM tailor_publications WHERE client_id='personal' ORDER BY author_name,title,id")).rows;
 const editions=(await c.query("SELECT id,book_id,format_code AS format,status,to_char(publication_date,'YYYY-MM-DD') AS \"publicationDate\",isbn FROM tailor_publication_editions WHERE client_id='personal' ORDER BY format_code,id")).rows;
