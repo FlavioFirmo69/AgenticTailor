@@ -52,7 +52,7 @@ export async function POST(req:NextRequest){try{
   if(b.action==='book'){if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo per questo cliente.');if(!s.messages.some(m=>m.slots?.includes(b.start)))throw Error('Seleziona uno slot proposto dal calendario.');const event=makeEvent(b.start,s.events,b.title);await externalCheck(b.client,event);s.events.push(event);s.messages.push({id:crypto.randomUUID(),role:'assistant',agent:'calendar',mode:'deterministic',text:`Appuntamento confermato per ${event.start.slice(0,10)} alle ${event.start.slice(11,16)}.`});return {ok:true};}
   if(b.action!=='chat'||typeof b.text!=='string'||!b.text.trim()||b.text.length>4000)throw Error('Messaggio non valido.');
   const text=b.text.trim();const previous=[...s.messages].reverse().find(m=>m.role==='assistant');
-  if(b.client==='personal'&&isEditorialRequest(text,previous?.agent)){
+  if(b.client==='personal'&&isEditorialRequest(text,previous?.agent,Boolean(s.editorialDraft))){
    await requireSuperuser(req);
    const books=await editorialBooks();
    if(handlesEditorialRequest(text,books)){

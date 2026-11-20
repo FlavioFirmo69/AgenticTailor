@@ -10,10 +10,10 @@ const names=(book:EditorialBook)=>[book.title,book.code,...(book.previousTitles?
 const publication=/\b(?:pubblic\w*|piano editoriale|piano del romanzo|uscita)\b/i;
 const bookTerms=/\b(?:libro|romanzo|copertina|amazon|kdp|piano editoriale|piano del romanzo)\b/i;
 const startPlan=(text:string)=>publication.test(text)&&bookTerms.test(text);
-const revision=/^(?:aggiungi|devo anche|aggiorna le date|sposta)\b/i;
-export const isEditorialRequest=(text:string,previousAgent?:string)=>{
+const revision=/^(?:aggiungi|aggiungo|inserisci|devo anche|aggiorna le date|sposta)\b/i;
+export const isEditorialRequest=(text:string,previousAgent?:string,hasDraft=false)=>{
  if(/\bstrategi\w*\b/i.test(text))return false;
- return startPlan(text)||previousAgent==='editorial'&&text.length<=4000;
+ return startPlan(text)||previousAgent==='editorial'||(hasDraft&&proofQuantity(text)!==undefined);
 };
 
 function businessDays(from:string,count:number){
@@ -24,14 +24,17 @@ function businessDays(from:string,count:number){
  }
  return date.toISOString().slice(0,10);
 }
-function milestones(today:string,proofs?:number,paperbackOnly=false):Step[]{
- const cover=businessDays(today,1),preview=businessDays(cover,1);
- const proofCheck=businessDays(preview,10),submit=businessDays(proofs?proofCheck:preview,1);
+function milestones(today:string,proofs?:number,paperbackOnly=false,checkKdpBeforeProofs=false,existing?:Step[]):Step[]{
+ const cover=existing?.find(step=>step.key==='cover')?.date??businessDays(today,1);
+ const preview=existing?.find(step=>step.key==='preview')?.date??businessDays(cover,1);
+ const order=checkKdpBeforeProofs?businessDays(preview,1):preview;
+ const proofCheck=businessDays(order,10),submit=businessDays(proofs?proofCheck:preview,1);
  return [
   {key:'cover',title:'Approvare la copertina definitiva',date:cover},
   {key:'preview',title:paperbackOnly?'Controllare PDF, copertina e anteprima del cartaceo in KDP':'Controllare file, scheda e anteprima KDP',date:preview},
   ...(proofs?[
-   {key:'order-proof',title:'Ordinare '+proofs+' copie di prova',date:preview},
+   ...(checkKdpBeforeProofs?[{key:'proof-ready',title:'Controllare nella Libreria KDP che il libro consenta di ordinare copie di prova',date:preview}]:[]),
+   {key:'order-proof',title:'Ordinare '+proofs+' copie di prova',date:order},
    {key:'check-proof',title:'Verificare le copie di prova prima di inviare il libro',date:proofCheck}
   ]:[]),
   {key:'submit',title:paperbackOnly?'Inviare l’edizione cartacea a KDP per la revisione':'Inviare il libro a KDP per la revisione',date:submit},
@@ -54,11 +57,11 @@ function findBook(text:string,books:EditorialBook[]){
 }
 export function handlesEditorialRequest(text:string,books:EditorialBook[]){
  const input=normalize(text);
- return startPlan(text)||confirmation.test(text)||revision.test(text)||books.some(book=>names(book).some(value=>normalize(value)===input));
+ return startPlan(text)||confirmation.test(text)||revision.test(text)||proofQuantity(text)!==undefined||books.some(book=>names(book).some(value=>normalize(value)===input));
 }
 function proofQuantity(text:string){
  const numbers:Record<string,number>={una:1,un:1,due:2,tre:3,quattro:4,cinque:5,sei:6,sette:7,otto:8,nove:9,dieci:10};
- const match=text.toLowerCase().match(/\b(\d+|un[ao]?|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+copi[ae]\s+(?:di\s+)?(?:bozza|prova)\b/);
+ const match=text.toLowerCase().match(/\b(\d+|un[ao]?|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+copi[ae]\s+(?:(?:di|in)\s+)?(?:bozza|prova)\b/);
  return match?numbers[match[1]]??Number(match[1]):undefined;
 }
 function proposal(draft:EditorialDraft){
@@ -86,7 +89,7 @@ export function editorialPlanReply(state:State,text:string,books:EditorialBook[]
   return 'Create '+events.length+' attività in agenda, collegate a «'+draft.book.title+'». Le trovi anche nel Diario del romanzo.';
  }
  const book=findBook(text,books);
- const selected=book??(!startPlan(text)&&draft?.book);
+ const selected=!startPlan(text)&&draft&&(revision.test(text)||proofQuantity(text)!==undefined)?draft.book:book??(!startPlan(text)&&draft?.book);
  if(!selected)return 'Per quale romanzo? Scrivi il titolo esatto o il codice di una scheda in Scrittura e pubblicazioni.';
  const saved=state.events.filter(event=>event.bookId===selected.id).sort((a,b)=>a.start.localeCompare(b.start));
  if(saved.length)return 'Piano registrato · '+selected.title+'\n'+saved.map(event=>event.start.slice(0,10)+' · '+event.title).join('\n')+'\nPuoi aggiornare le date nell’agenda.';
@@ -99,7 +102,10 @@ export function editorialPlanReply(state:State,text:string,books:EditorialBook[]
  if(quantity!==undefined||(existing&&paperbackOnly&&!existing.paperbackOnly)||/\baggiorna le date\b/i.test(text)){
   const previousQuantity=existing?.steps.find(step=>step.key==='order-proof')?.title.match(/\d+/)?.[0];
   const custom=steps.filter(step=>step.key.startsWith('extra-'));
-  steps=[...milestones(today,quantity??(previousQuantity?Number(previousQuantity):undefined),paperbackOnly),...custom.map(step=>({...step,date:step.date<today?businessDays(today,1):step.date}))];
+  const refreshDates=/\baggiorna le date\b/i.test(text);
+  const checkKdpBeforeProofs=steps.some(step=>step.key==='proof-ready')||
+   (quantity!==undefined&&/\bdopo\b[^\n]*\b(?:kdp|libreria)\b/i.test(text));
+  steps=[...milestones(today,quantity??(previousQuantity?Number(previousQuantity):undefined),paperbackOnly,checkKdpBeforeProofs,refreshDates?undefined:existing?.steps),...custom.map(step=>({...step,date:step.date<today?businessDays(today,1):step.date}))];
  }else if(existing){
   const move=text.match(/^sposta\s+(.+?)\s+(?:(?:al|il)\s+)?(\d{4}-\d{2}-\d{2})[.!]?$/i);
   if(move){
@@ -112,7 +118,7 @@ export function editorialPlanReply(state:State,text:string,books:EditorialBook[]
    if(standard.some((step,index)=>index>0&&step.date<standard[index-1].date))return 'La nuova data invertirebbe due tappe. Mantieni l’ordine indicato nella bozza.';
    steps=revised;
   }
-  const extra=text.match(/^\s*(?:aggiungi(?: anche)?|devo anche)\s+(.+?)[.!]?\s*$/i);
+  const extra=text.match(/^\s*(?:aggiungi(?: anche)?|aggiungo|inserisci|devo anche)[:\s]+(.+?)[.!]?\s*$/i);
   if(extra){
    const date=/\b\d{4}-\d{2}-\d{2}\b/.test(extra[1])?dayFor(extra[1],now):steps.find(step=>step.key==='preview')!.date;
    const title=extra[1].replace(/\s+(?:il\s+)?\d{4}-\d{2}-\d{2}\s*$/,'').trim();

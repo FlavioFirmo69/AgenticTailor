@@ -50,3 +50,24 @@ test('la richiesta su Gabriella riconosce il titolo precedente e conserva solo c
  assert.match(editorialPlanReply(missing,prompt,[book],now),/quale romanzo/);
  assert.match(editorialPlanReply(missing,book.title,[book],now),/solo cartaceo/);
 });
+
+test('la richiesta di acquistare 3 copie in bozza resta nel piano dopo un ripiego all’assistente generale',()=>{
+ const state=emptyState();
+ state.enabledAgents=['calendar'];
+ editorialPlanReply(state,'Pianifica la pubblicazione del romanzo '+book.title+' solo cartaceo',[book],now);
+ const request="Aggiungo: inserisci l'acquisto di 3 copie in bozza dopo aver controllato lo stato della libreria KDP";
+ assert.equal(isEditorialRequest(request,undefined,true),true);
+ assert.equal(handlesEditorialRequest(request,[book]),true);
+ const proposal=editorialPlanReply(state,request,[book],now);
+ assert.match(proposal,/solo cartaceo/);
+ assert.match(proposal,/Ordinare 3 copie di prova/);
+ const steps=state.editorialDraft!.steps;
+ const date=(key:string)=>steps.find(step=>step.key===key)!.date;
+ assert.ok(date('proof-ready')<date('order-proof'));
+ assert.ok(date('order-proof')<date('check-proof'));
+ assert.ok(date('check-proof')<date('submit'));
+ assert.ok(date('submit')<date('review'));
+ assert.equal(state.events.length,0);
+ editorialPlanReply(state,request,[book],now);
+ assert.equal(state.editorialDraft!.steps.filter(step=>step.key==='order-proof').length,1);
+});
