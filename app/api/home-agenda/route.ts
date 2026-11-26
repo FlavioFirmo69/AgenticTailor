@@ -1,7 +1,8 @@
 import {NextRequest,NextResponse} from 'next/server';import {requireSuperuser} from '@/lib/access';import {agendaCompletions,completeAgenda} from '@/lib/agenda-completion-store';import {transact} from '@/lib/store';
-import {expiredNativeAppointment,overdueAllDayAppointments,personalWeek} from '@/lib/home-agenda-domain';
+import {canRescheduleHomeEvent,overdueAllDayAppointments,personalWeek} from '@/lib/home-agenda-domain';
 import {moveCalendarEvent} from '@/lib/calendar-move';
 import {linkedBookTitles} from '@/lib/publications-store';
+import {checkPersonalCalendarConflicts} from '@/lib/second-brain-store';
 export const runtime='nodejs';
 function client(value:unknown){if(value!=='personal'||process.env.CLIENT_ID&&process.env.CLIENT_ID!=='personal')throw Error('Ambiente personale richiesto.');}
 export async function GET(req:NextRequest){try{await requireSuperuser(req);client(req.nextUrl.searchParams.get('client'));const result=await transact('personal',async s=>{
@@ -16,10 +17,11 @@ export async function POST(req:NextRequest){try{await requireSuperuser(req);if(r
  if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo.');
  const index=s.events.findIndex(event=>event.id===b.eventKey);
  const event=s.events[index],today=personalWeek().start;
- if(!event?.allDay||!expiredNativeAppointment(event,today)||event.start!==b.expectedStart||event.end!==b.expectedEnd||
-    (await agendaCompletions()).some(e=>e.id===event.id)||event.completedAt)throw Error('Attività aggiornata: ricarica il riepilogo.');
+ if(!event||!canRescheduleHomeEvent(event,today)||event.start!==b.expectedStart||event.end!==b.expectedEnd||
+    (await agendaCompletions()).some(e=>e.id===event.id))throw Error('Attività aggiornata: ricarica il riepilogo.');
  if(typeof b.day!=='string'||b.day<today)throw Error('Scegli oggi o una data futura.');
  const moved=moveCalendarEvent(event,b.day,s.events);
+ await checkPersonalCalendarConflicts('personal',moved);
  s.events[index]=moved;
  return {ok:true,event:moved};
  }));}catch(e){return NextResponse.json({error:(e as Error).message},{status:400});}}

@@ -1,3 +1,4 @@
+import {agendaRangeContains,canRescheduleHomeEvent} from '../lib/home-agenda-domain.ts';
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {moveCalendarEvent,editCalendarEvent} from '../lib/calendar-move.ts';
 import {personalWeek,agendaDay,remainingWeekDays,automaticCompletionDate,overdueAllDayAppointments} from '../lib/home-agenda-domain.ts';
@@ -40,4 +41,17 @@ test('Da recuperare include solo gli eventi nativi tutto il giorno aperti dopo l
  assert.equal(moved.id,event.id);
  assert.equal(moved.end,'2026-11-25T00:00:00');
  assert.deepEqual(overdueAllDayAppointments([moved],new Set(),'2026-11-21'),[]);
+});
+
+test('chiusura nel resto della settimana e riprogrammazione dalla home',()=>{
+ const event={id:'a',title:'Copie di prova',bookId:'book',start:'2026-11-26T10:00:00',end:'2026-11-26T11:00:00'};
+ assert.equal(agendaRangeContains(event,'2026-11-25','2026-11-29'),true);
+ assert.equal(agendaRangeContains(event,'2026-11-20','2026-11-22'),false);
+ assert.equal(canRescheduleHomeEvent(event,'2026-11-26'),true);
+ assert.equal(canRescheduleHomeEvent(event,'2026-11-25'),false);
+ assert.equal(canRescheduleHomeEvent({...event,source:'second-brain'},'2026-11-26'),false);
+ const newDate=moveCalendarEvent(event,'2026-11-30',[]);
+ assert.equal(newDate.start,'2026-11-30T10:00:00');
+ assert.equal(newDate.end,'2026-11-30T11:00:00');
+ assert.equal(newDate.bookId,event.bookId);
 });
