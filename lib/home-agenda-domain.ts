@@ -10,7 +10,8 @@ export function agendaRangeContains(event:Event,start:string,end:string):boolean
 }
 
 export function canRescheduleHomeEvent(event:Event,today:string):boolean{
- return !event.source&&!event.completedAt&&(agendaRangeContains(event,today,today)||
+ if(event.source)return event.source==='case'&&Number.isInteger(event.sourceVersion)&&!event.completedAt&&agendaRangeContains(event,today,today);
+ return !event.completedAt&&(agendaRangeContains(event,today,today)||
   Boolean(event.allDay&&expiredNativeAppointment(event,today)));
 }
 export function agendaDay(events:Event[],day:string){

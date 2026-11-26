@@ -50,6 +50,9 @@ test('chiusura nel resto della settimana e riprogrammazione dalla home',()=>{
  assert.equal(canRescheduleHomeEvent(event,'2026-11-26'),true);
  assert.equal(canRescheduleHomeEvent(event,'2026-11-25'),false);
  assert.equal(canRescheduleHomeEvent({...event,source:'second-brain'},'2026-11-26'),false);
+ assert.equal(canRescheduleHomeEvent({...event,source:'case',sourceVersion:3},'2026-11-26'),true);
+ assert.equal(canRescheduleHomeEvent({...event,source:'case'},'2026-11-26'),false);
+ assert.equal(canRescheduleHomeEvent({...event,source:'case',sourceVersion:3},'2026-11-25'),false);
  const newDate=moveCalendarEvent(event,'2026-11-30',[]);
  assert.equal(newDate.start,'2026-11-30T10:00:00');
  assert.equal(newDate.end,'2026-11-30T11:00:00');

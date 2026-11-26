@@ -1,6 +1,6 @@
 # Home compatta e chiusura delle attività
 
-La sezione “La tua settimana” è un elemento details chiuso inizialmente. Il riepilogo mostra quante attività aperte sono in agenda oggi, con data e settimana calcolate in Europe/Rome. Un click apre oggi e resto della settimana; il pulsante ✓ è disponibile sulle voci da oggi a domenica. Gli appuntamenti nativi di oggi si possono riprogrammare qui, mantenendo orario, durata e collegamenti. Una chiusura riuscita aggiorna subito il contatore e offre “Annulla chiusura”.
+La sezione “La tua settimana” è un elemento details chiuso inizialmente. Il riepilogo mostra quante attività aperte sono in agenda oggi, con data e settimana calcolate in Europe/Rome. Un click apre oggi e resto della settimana; il pulsante ✓ è disponibile sulle voci da oggi a domenica. Gli appuntamenti nativi e quelli pianificati delle pratiche di oggi si possono riprogrammare qui, mantenendo orario, durata e collegamenti. Una chiusura riuscita aggiorna subito il contatore e offre “Annulla chiusura”.
 
 La migrazione 022 registra chiusure e storico nell'ambiente personale. Non elimina appuntamenti e non modifica le tabelle storiche `sb2_*`. Le chiusure degli eventi del calendario sono sovrapposte ai dati originali: spariscono dal riepilogo delle cose da fare e rimangono identificabili come completati nell'agenda. Per le voci marketing non viene effettuata alcuna pubblicazione né viene attivato un LLM.
 

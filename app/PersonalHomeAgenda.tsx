@@ -25,12 +25,12 @@ export default function PersonalHomeAgenda({events,calendarEnabled,projectsEnabl
   setBusy(true);setActionError('');setFeedback('');
   try{
    const r=await fetch('/api/home-agenda',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    client:'personal',action:'reschedule',eventKey:event.id,expectedStart:event.start,expectedEnd:event.end,day
+    client:'personal',action:'reschedule',eventKey:event.id,expectedStart:event.start,expectedEnd:event.end,expectedSourceVersion:event.sourceVersion,day
    })});
    const d=await r.json();
    if(!r.ok)throw Error(d.error);
    setOverdue(old=>old.filter(item=>item.id!==event.id));
-   setNative(old=>old?.map(item=>item.id===event.id?d.event:item)??null);
+   if(d.event)setNative(old=>old?.map(item=>item.id===event.id?d.event:item)??null);
    setSchedule(null);setFeedback('Attività riprogrammata.');setUndo(null);setRefresh(n=>n+1);
   }catch(e){setActionError((e as Error).message);}finally{setBusy(false);}
  }
