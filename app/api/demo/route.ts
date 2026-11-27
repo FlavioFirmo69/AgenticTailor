@@ -13,7 +13,7 @@ import {ready,listProjects} from '@/lib/projects-store';
 import {visitsData} from '@/lib/visits-store';
 import {isSuperuser,isDemoSuperuser,requireSuperuser} from '@/lib/access';
 import {generate,aiReady,aiQuotaUrl} from '@/lib/ai';
-import {checkPersonalCalendarConflicts} from '@/lib/second-brain-store';
+import {readSecondBrain,checkPersonalCalendarConflicts} from '@/lib/second-brain-store';
 import {isFinanceRequest,isBalanceTotalRequest,financeAnswer} from '@/lib/finance-agent';
 import {automaticCompletionDate,personalWeek} from '@/lib/home-agenda-domain';
 import {editorialBooks} from '@/lib/publications-store';
@@ -21,6 +21,7 @@ import {editorialPlanReply,handlesEditorialRequest,isEditorialRequest} from '@/l
 import {consultingIntent,consultingSummary,findConsultingProject,recentConsultingProject,switchDate} from '@/lib/consulting-chat';
 import {scheduledConsultingSwitch,saveConsultingSwitch} from '@/lib/consulting-switch-store';
 import {workflow} from '@/lib/workflow-store';
+import {calendarCreateRequest,calendarEventText,calendarSearch,cancelsCalendarDraft,confirmsCalendarDraft,findCalendarEvents,parseCalendarDraft} from '@/lib/calendar-chat';
 export const runtime='nodejs';
 export const maxDuration=60;
 async function base(){return readFile(path.join(process.cwd(),'agents/calendar/instructions.md'),'utf8');}
@@ -53,6 +54,47 @@ export async function POST(req:NextRequest){try{
   if(b.action==='book'){if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo per questo cliente.');if(!s.messages.some(m=>m.slots?.includes(b.start)))throw Error('Seleziona uno slot proposto dal calendario.');const event=makeEvent(b.start,s.events,b.title);await checkPersonalCalendarConflicts(b.client,event);s.events.push(event);s.messages.push({id:crypto.randomUUID(),role:'assistant',agent:'calendar',mode:'deterministic',text:`Appuntamento confermato per ${event.start.slice(0,10)} alle ${event.start.slice(11,16)}.`});return {ok:true};}
   if(b.action!=='chat'||typeof b.text!=='string'||!b.text.trim()||b.text.length>4000)throw Error('Messaggio non valido.');
   const text=b.text.trim();const previous=[...s.messages].reverse().find(m=>m.role==='assistant');
+  const searchRequest=calendarSearch(text);
+  const draft=previous?.calendarDraft;
+  const confirmDraft=confirmsCalendarDraft(text);
+  const cancelDraft=Boolean(draft&&cancelsCalendarDraft(text));
+  if(s.enabledAgents?.includes('calendar')&&(searchRequest||calendarCreateRequest(text)||confirmDraft||cancelDraft)){
+   const answer:Message={id:crypto.randomUUID(),role:'assistant',agent:'calendar',mode:'deterministic',text:''};
+   if(draft&&confirmDraft){
+    const event=manualEvent(draft.start,draft.duration,draft.title,s.events,draft.allDay);
+    await checkPersonalCalendarConflicts(b.client,event);
+    s.events.push(event);
+    answer.text='Appuntamento salvato in agenda.\n'+calendarEventText(event);
+   }else if(confirmDraft){
+    answer.text='Non c’è una proposta di appuntamento da confermare.';
+   }else if(cancelDraft){
+    answer.text='Proposta annullata.';
+   }else if(searchRequest){
+    let events=s.events,partial=false;
+    if(b.client==='personal'){
+     try{const source=await readSecondBrain('calendar',{start:searchRequest.start,end:searchRequest.end});
+      events=[...events,...source.events];partial=source.status!=='connected';
+     }catch{partial=true;}
+    }
+    const matches=findCalendarEvents(events,searchRequest);
+    answer.text='Eventi per «'+searchRequest.term+'» · '+searchRequest.start+(searchRequest.end===searchRequest.start?'':' → '+searchRequest.end)+'\n'+
+     (matches.length?matches.slice(0,25).map(calendarEventText).join('\n'):'Nessun evento corrispondente.')+
+     (matches.length>25?'\nMostrati 25 di '+matches.length+' risultati. Indica una data per restringere la ricerca.':'')+
+     (partial?'\nRisultati parziali: calendario storico non disponibile.':'');
+   }else{
+    const proposal=parseCalendarDraft(text);
+    if(!proposal)answer.text='Indica titolo, data e orario oppure «tutto il giorno». Esempio: «Aggiungi in agenda Cena teatro domani alle 20:30 per 90 minuti».';
+    else{
+     const event=manualEvent(proposal.start,proposal.duration,proposal.title,s.events,proposal.allDay);
+     await checkPersonalCalendarConflicts(b.client,event);
+     answer.calendarDraft=proposal;
+     answer.text='Proposta da confermare\n'+calendarEventText(event)+(proposal.allDay?'':' · '+proposal.duration+' min')+
+      '\nScrivi «Conferma appuntamento» per salvarlo oppure «Annulla».';
+    }
+   }
+   s.messages.push({id:crypto.randomUUID(),role:'user',text},answer);
+   return {ok:true};
+  }
   if(b.client==='personal'&&isEditorialRequest(text,previous?.agent,Boolean(s.editorialDraft))){
    await requireSuperuser(req);
    const books=await editorialBooks();

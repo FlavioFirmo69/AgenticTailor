@@ -27,7 +27,7 @@ export default function ProjectTimeline({client,projectId,visitsEnabled,onManage
  const url=(id:string,preview=false)=>`/api/timeline?client=${client}&projectId=${projectId}&revision=${id}${preview?'&preview=1':''}`;
  function showDoc(doc:Doc){setRevision(doc.revisions[0]?.id??'');setDrawer({doc});}
  async function linkVisit(v:Visit,phaseId:string){await run(async()=>{const r=await fetch('/api/timeline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client,projectId,action:'link-visit',visitId:v.id,phaseId})});const d=await r.json();if(!r.ok)throw Error(d.error);const fresh=await load();setDrawer({visit:fresh.visits.find(x=>x.id===v.id)});});}
- if(!data)return <section className="timeline-module">{error?<div role="alert">{error}</div>:'Caricamento percorso della commessa…'}</section>;
+ if(!data)return <section className={client==='personal'?'timeline-module consulting-phases':'timeline-module'}>{error?<div role="alert">{error}</div>:'Caricamento percorso della commessa…'}</section>;
  const completed=data.tasks.filter(t=>t.status==='Completato').length;
  const groups:Phase[]=[...data.phases,{id:'unlinked',title:'Materiali e visite senza fase',position:0,declared_status:null,status_note:'',status_version:0}];
  const docBelongs=(d:Doc,p:Phase)=>d.phase_ids.includes(p.id)||Boolean(d.task_id&&data.tasks.some(t=>t.id===d.task_id&&t.phase_id===p.id))||Boolean(d.visit_id&&data.visits.some(v=>v.id===d.visit_id&&v.phase_id===p.id))||(p.id==='unlinked'&&!d.phase_ids.length&&!d.task_id&&(!d.visit_id||!data.visits.some(v=>v.id===d.visit_id&&v.phase_id)));

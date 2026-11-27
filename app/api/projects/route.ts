@@ -2,11 +2,11 @@ import {requirePersonalAccess} from '@/lib/access';
 import {NextRequest,NextResponse} from 'next/server';
 import {validClient} from '@/lib/domain';
 import {transact} from '@/lib/store';
-import {listProjects,projectDetail,saveProject,addProjectNote} from '@/lib/projects-store';
+import {listProjects,listProjectProgress,projectDetail,saveProject,addProjectNote} from '@/lib/projects-store';
 import {isSuperuser} from '@/lib/access';
 export const runtime='nodejs';
 function check(client:string){if(!validClient(client)||process.env.CLIENT_ID&&process.env.CLIENT_ID!==client)throw Error('Cliente non abilitato.');}
-export async function GET(req:NextRequest){try{const client=req.nextUrl.searchParams.get('client')??process.env.CLIENT_ID??'dentist';check(client);await requirePersonalAccess(req,client);const id=req.nextUrl.searchParams.get('id');return NextResponse.json(await transact(client,async s=>{if(!s.enabledAgents?.includes('projects'))throw Error('Commesse non attivo per questo cliente.');return id?await projectDetail(client,id):{projects:await listProjects(client)};}));}catch(e){return NextResponse.json({error:(e as Error).message},{status:400});}}
+export async function GET(req:NextRequest){try{const client=req.nextUrl.searchParams.get('client')??process.env.CLIENT_ID??'dentist';check(client);await requirePersonalAccess(req,client);const id=req.nextUrl.searchParams.get('id');return NextResponse.json(await transact(client,async s=>{if(!s.enabledAgents?.includes('projects'))throw Error('Commesse non attivo per questo cliente.');if(id)return projectDetail(client,id);const progress=req.nextUrl.searchParams.get('view')==='progress';return {projects:progress?await listProjectProgress(client):await listProjects(client)};}));}catch(e){return NextResponse.json({error:(e as Error).message},{status:400});}}
 export async function POST(req:NextRequest){try{
  if(req.headers.get('origin')&&new URL(req.headers.get('origin')!).host!==req.headers.get('host'))throw Error('Origine non consentita.');
  const b=await req.json();check(b.client);await requirePersonalAccess(req,b.client);const actor=await isSuperuser(req)?'Consulente · superuser demo':'Utente demo';

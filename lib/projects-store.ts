@@ -1,7 +1,7 @@
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {pool} from './store';
-import {Project,DiaryEntry,validateProject,validateDiary} from './projects-domain';
+import {Project,DiaryEntry,validateProject,validateDiary,type ProjectProgress} from './projects-domain';
 const runtime=globalThis as unknown as {tailorProjectsSchemaV25?:Promise<void>};
 export async function ready(){
  if(!process.env.DATABASE_URL)throw Error('Il modulo Commesse richiede PostgreSQL. Configurare DATABASE_URL.');
@@ -10,6 +10,18 @@ export async function ready(){
 }
 function project(row:Record<string,unknown>):Project{return {expectedValue:row.expected_value==null?null:String(row.expected_value),id:String(row.id),code:String(row.code),title:String(row.title),customer:String(row.customer),owner:String(row.owner_name??row.owner),ownerId:row.owner_id?String(row.owner_id):null,status:row.status as Project['status'],dueDate:row.due_date?String(row.due_date).slice(0,10):null,description:String(row.description),version:Number(row.version),createdAt:new Date(row.created_at as string).toISOString(),updatedAt:new Date(row.updated_at as string).toISOString()};}
 const columns='expected_value,id,code,title,customer,owner,owner_id,(SELECT display_name FROM tailor_team WHERE id=tailor_projects.owner_id AND client_id=tailor_projects.client_id) AS owner_name,status,to_char(due_date,\'YYYY-MM-DD\') AS due_date,description,version,created_at,updated_at';
+export async function listProjectProgress(client:string):Promise<ProjectProgress[]>{
+ await ready();
+ const {rows}=await pool().query<ProjectProgress>(`SELECT p.id,p.code,p.title,p.status,
+  count(t.id) FILTER (WHERE t.status='Completato')::int AS completed,
+  count(t.id) FILTER (WHERE t.status<>'Non applicabile')::int AS total
+  FROM tailor_projects p
+  LEFT JOIN tailor_project_phases f ON f.client_id=p.client_id AND f.project_id=p.id
+  LEFT JOIN tailor_project_tasks t ON t.client_id=f.client_id AND t.phase_id=f.id
+  WHERE p.client_id=$1
+  GROUP BY p.id ORDER BY p.updated_at DESC,p.code`,[client]);
+ return rows;
+}
 export async function listProjects(client:string){await ready();const r=await pool().query(`SELECT ${columns} FROM tailor_projects WHERE client_id=$1 ORDER BY updated_at DESC,code`,[client]);return r.rows.map(project);}
 export async function projectDetail(client:string,id:string){await ready();if(!/^[0-9a-f-]{36}$/i.test(id))throw Error('Identificativo non valido.');const r=await pool().query(`SELECT ${columns} FROM tailor_projects WHERE client_id=$1 AND id=$2`,[client,id]);if(!r.rowCount)throw Error('Commessa non trovata.');const diary=await pool().query("SELECT id,kind,text,actor,to_char(occurred_on,'YYYY-MM-DD') AS date,created_at FROM tailor_project_diary WHERE client_id=$1 AND project_id=$2 ORDER BY occurred_on DESC,created_at DESC",[client,id]);const contexts=await pool().query('SELECT id,context_markdown AS "contextMarkdown",payload,created_at AS "createdAt" FROM tailor_project_context WHERE client_id=$1 AND project_id=$2 ORDER BY created_at,id',[client,id]);return {contexts:contexts.rows,project:project(r.rows[0]),diary:diary.rows.map(r=>({id:r.id,kind:r.kind,text:r.text,actor:r.actor,occurredOn:r.date,createdAt:new Date(r.created_at).toISOString()} as DiaryEntry))};}
 export async function saveProject(client:string,input:unknown,actor:string,id?:string,version?:number,modelId?:string){

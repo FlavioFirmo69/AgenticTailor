@@ -3,6 +3,7 @@ export const projectStatuses=['Da valutare','Offerta','Attiva','In attesa','Comp
 export type ProjectStatus=typeof projectStatuses[number];
 export type ProjectFields={code:string;title:string;customer:string;owner:string;ownerId?:string|null;status:ProjectStatus;dueDate:string|null;description:string;expectedValue?:string|null};
 export type Project=ProjectFields&{id:string;version:number;createdAt:string;updatedAt:string};
+export type ProjectProgress=Pick<Project,'id'|'code'|'title'|'status'>&{completed:number;total:number};
 export type DiaryEntry={id:string;kind:string;text:string;actor:string;occurredOn:string;createdAt:string};
 export function validateProject(value:unknown):ProjectFields{
  if(!value||typeof value!=='object')throw Error('Dati commessa non validi.');
