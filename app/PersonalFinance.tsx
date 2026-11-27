@@ -13,6 +13,7 @@ const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'nu
 const date=(s:string)=>s.split('-').reverse().join('/');
 function amount(s:string|null|undefined,currency='EUR'){if(s==null)return '—';const [whole,decimal='00']=s.split('.');return whole.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+decimal.padEnd(2,'0')+' '+(currency==='EUR'?'€':currency);}
 function ProjectedBalanceChart({current,planned,currency}:{current?:Balance;planned:Movement[];currency:string}){
+ const [activePoint,setActivePoint]=useState<number|null>(null);
  if(!current)return null;
  const byDate=new Map<string,string>();
  for(const movement of planned){
@@ -27,20 +28,34 @@ function ProjectedBalanceChart({current,planned,currency}:{current?:Balance;plan
  const y=(value:bigint)=>min===max?31:56-Number((value-min)*5000n/(max-min))/100;
  const firstDate=Date.parse(series[0][0]);
  const lastDate=Date.parse(series[series.length-1][0]);
- const points=[{x:5,y:y(values[0]),label:'Saldo rilevato · '+amount(current.balance,currency)},...series.map(([day,balance],index)=>({
+ const points=[{x:5,y:y(values[0]),label:date(current.date)+' · '+amount(current.balance,currency)},...series.map(([day,balance],index)=>({
   x:firstDate===lastDate?235:16+219*(Date.parse(day)-firstDate)/(lastDate-firstDate),
   y:y(values[index+1]),
   label:date(day)+' · '+amount(balance,currency),
  }))];
  const end=series[series.length-1];
- const description=points[0].label+' → '+date(end[0])+' · '+amount(end[1],currency);
+ const active=activePoint===null?undefined:points[activePoint];
  const line=points.slice(1).reduce((path,point)=>path+' H '+point.x+' V '+point.y,'M 5 '+points[0].y);
- return <figure className="fin-projection-chart">
-  <svg viewBox="0 0 240 62" role="img" aria-label={'Andamento del saldo previsto. '+description}>
-   {min<0n&&max>=0n&&<path className="fin-projection-zero" d={'M 5 '+y(0n)+' H 235'}/>}
-   <path className="fin-projection-line" d={line}/>
-   {points.map(({x,y,label})=><circle key={label} cx={x} cy={y} r={3}><title>{label}</title></circle>)}
-  </svg>
+ return <figure className="fin-projection-chart" aria-label="Andamento del saldo previsto">
+  <div className="fin-projection-plot">
+   <svg viewBox="0 0 240 62" aria-hidden="true">
+    {min<0n&&max>=0n&&<path className="fin-projection-zero" d={'M 5 '+y(0n)+' H 235'}/>}
+    <path className="fin-projection-line" d={line}/>
+    {points.map(({x,y},index)=><circle key={index} cx={x} cy={y} r={index===activePoint?4.5:3}/>)}
+   </svg>
+   {points.map((point,index)=>{
+    const left=index===0?0:(points[index-1].x+point.x)/2;
+    const right=index===points.length-1?240:(point.x+points[index+1].x)/2;
+    return <button key={index} type="button" className="fin-projection-point"
+     style={{left:(left/240*100)+'%',width:((right-left)/240*100)+'%'}}
+     aria-label={(index===0?'Saldo rilevato, ':'Saldo previsto, ')+point.label}
+     onPointerEnter={event=>{if(event.pointerType==='mouse')setActivePoint(index);}}
+     onPointerLeave={event=>{if(event.pointerType==='mouse')setActivePoint(value=>value===index?null:value);}}
+     onFocus={()=>setActivePoint(index)} onBlur={()=>setActivePoint(value=>value===index?null:value)}
+     onClick={()=>setActivePoint(index)} onKeyDown={event=>{if(event.key==='Escape')setActivePoint(null);}}/>;
+   })}
+   {active&&<div className="fin-projection-tooltip" role="tooltip">{active.label}</div>}
+  </div>
   <figcaption><span>Saldo rilevato</span><time dateTime={end[0]}>{date(end[0])}</time></figcaption>
  </figure>;
 }

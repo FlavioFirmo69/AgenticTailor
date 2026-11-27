@@ -75,3 +75,8 @@
 .fin-account-totals small{display:block;margin-top:6px;overflow-wrap:anywhere}
 .fin-account-totals p{display:flex;flex-wrap:wrap;gap:8px 20px;margin:6px 0 0}
 .fin-account-totals strong{font-size:21px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+.fin-projection-plot{position:relative}
+.fin-projection-point{position:absolute;inset-block:0;border:0;padding:0;background:transparent}
+.finance-workspace .fin-projection-point:focus-visible{outline-offset:0;z-index:1}
+.fin-projection-tooltip{position:absolute;z-index:2;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);box-sizing:border-box;width:max-content;max-width:100%;border-radius:5px;padding:5px 8px;background:#183653;color:#fff;text-align:center;font-size:12px;line-height:1.35;overflow-wrap:anywhere;pointer-events:none}
