@@ -49,3 +49,29 @@
 .fin-recurrences{margin:22px 0;padding:22px;background:white;border:1px solid #dce5ef;border-radius:12px}.fin-recurring-list article{display:flex;align-items:center;gap:18px;padding:14px 0;border-top:1px solid #e5ebf2}.fin-recurring-list article>div{flex:1}.fin-recurring-list small{display:block;margin-top:5px;color:#73849a}.fin-recurring-list button{padding:7px 10px;border:1px solid #d4dfeb;border-radius:6px;background:white;color:#173655}@media(max-width:650px){.fin-recurring-list article{flex-wrap:wrap}.fin-recurrences .fin-ledger-heading{align-items:flex-start;gap:12px;flex-direction:column}}
 .home-agenda-overdue{margin-top:24px;border-top:1px solid #e5ebf3;padding-top:18px}.home-agenda-overdue form{margin-top:8px;align-items:center}.home-agenda-overdue input[type=date]{margin-left:4px}
 .consulting-home-list{list-style:none;padding:0;margin:0}.consulting-home-list>li{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}.consulting-home-project{text-align:left;padding:4px 0;color:#173655;overflow-wrap:anywhere;flex:1;min-width:145px}.consulting-home-project:hover span,.consulting-home-project:focus-visible span{text-decoration:underline}.consulting-home-project span{font-weight:700}.consulting-home-project small{display:block;color:#546781;margin-top:3px}.consulting-home-progress{display:grid;min-width:min(100%,160px);gap:5px;color:#42546b}.consulting-home-progress progress{width:100%;height:8px;accent-color:#315f85}
+
+.personal-work-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  align-items: start;
+  gap: 16px;
+  margin: 24px 0;
+}
+.personal-work-panels > .home-agenda {
+  min-width: 0;
+  margin: 0;
+}
+
+.fin-projection-chart{width:100%;margin:12px 0 0;color:#516c86}
+.fin-projection-chart svg{display:block;width:100%;height:auto;color:#315f85}
+.fin-projection-chart circle{fill:currentColor}
+.fin-projection-line,.fin-projection-zero{fill:none;stroke-width:1.75;vector-effect:non-scaling-stroke}
+.fin-projection-line{stroke:currentColor}
+.fin-projection-zero{stroke:#8297ac;stroke-dasharray:3 3}
+.fin-projection-chart figcaption{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;font-size:10px}
+
+.fin-account-totals{margin:0 0 16px;padding:14px 18px;border:1px solid #dce5ef;border-radius:11px;background:#fff}
+.fin-account-totals>span,.fin-account-totals small{font-size:12px;color:#516c86}
+.fin-account-totals small{display:block;margin-top:6px;overflow-wrap:anywhere}
+.fin-account-totals p{display:flex;flex-wrap:wrap;gap:8px 20px;margin:6px 0 0}
+.fin-account-totals strong{font-size:21px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}

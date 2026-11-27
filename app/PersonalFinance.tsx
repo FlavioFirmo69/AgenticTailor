@@ -1,17 +1,49 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {sumMoney} from '@/lib/finance-domain';
+import {summarizeAccountBalances,sumMoney,type AccountBalance} from '@/lib/finance-domain';
 type Account={id:string;name:string;code:string;currency:string;account_type:string;is_active:boolean;version:number};
 type Balance={id:string;date:string;balance:string;notes:string;reconciliation_amount:string|null};
 type Movement={id:string;date:string;description:string;amount:string;status:string;is_recurring:boolean;recurrence_id?:string|null;projected_balance:string|null;counterparty:string;category:string;notes:string;case_id:string|null;project_id:string|null};
 type Context={id:string;kind:string;code:string;title:string};
 type Recurrence={id:string;description:string;amount:string;day_of_month:number;active:boolean;start_date:string;end_date:string|null};
-type Data={recurrences:Recurrence[];baseMarkdown:string;customMarkdown:string;versions:{text:string;at:string}[];accounts:Account[];selected:Account|null;balances:Balance[];transactions:Movement[];contexts:Context[];suggestions:{counterparty:string;category:string}[];history:{id:string;action:string;created_at:string}[]};
+type Data={accountBalances:AccountBalance[];recurrences:Recurrence[];baseMarkdown:string;customMarkdown:string;versions:{text:string;at:string}[];accounts:Account[];selected:Account|null;balances:Balance[];transactions:Movement[];contexts:Context[];suggestions:{counterparty:string;category:string}[];history:{id:string;action:string;created_at:string}[]};
 type Editor={kind:'account'|'balance'|'transaction'|'recurrence'|'instructions';id?:string;fields:Record<string,string>};
-const empty:Data={recurrences:[],baseMarkdown:'',customMarkdown:'',versions:[],accounts:[],selected:null,balances:[],transactions:[],contexts:[],suggestions:[],history:[]};
+const empty:Data={accountBalances:[],recurrences:[],baseMarkdown:'',customMarkdown:'',versions:[],accounts:[],selected:null,balances:[],transactions:[],contexts:[],suggestions:[],history:[]};
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const date=(s:string)=>s.split('-').reverse().join('/');
 function amount(s:string|null|undefined,currency='EUR'){if(s==null)return '—';const [whole,decimal='00']=s.split('.');return whole.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+decimal.padEnd(2,'0')+' '+(currency==='EUR'?'€':currency);}
+function ProjectedBalanceChart({current,planned,currency}:{current?:Balance;planned:Movement[];currency:string}){
+ if(!current)return null;
+ const byDate=new Map<string,string>();
+ for(const movement of planned){
+  if(movement.projected_balance!==null)byDate.set(movement.date,movement.projected_balance);
+ }
+ const series=[...byDate];
+ if(!series.length)return <small className="fin-projection-chart">Nessun movimento previsto.</small>;
+
+ const values=[current.balance,...series.map(([,balance])=>balance)].map(balance=>BigInt(balance.replace('.','')));
+ const min=values.reduce((a,b)=>a<b?a:b);
+ const max=values.reduce((a,b)=>a>b?a:b);
+ const y=(value:bigint)=>min===max?31:56-Number((value-min)*5000n/(max-min))/100;
+ const firstDate=Date.parse(series[0][0]);
+ const lastDate=Date.parse(series[series.length-1][0]);
+ const points=[{x:5,y:y(values[0]),label:'Saldo rilevato · '+amount(current.balance,currency)},...series.map(([day,balance],index)=>({
+  x:firstDate===lastDate?235:16+219*(Date.parse(day)-firstDate)/(lastDate-firstDate),
+  y:y(values[index+1]),
+  label:date(day)+' · '+amount(balance,currency),
+ }))];
+ const end=series[series.length-1];
+ const description=points[0].label+' → '+date(end[0])+' · '+amount(end[1],currency);
+ const line=points.slice(1).reduce((path,point)=>path+' H '+point.x+' V '+point.y,'M 5 '+points[0].y);
+ return <figure className="fin-projection-chart">
+  <svg viewBox="0 0 240 62" role="img" aria-label={'Andamento del saldo previsto. '+description}>
+   {min<0n&&max>=0n&&<path className="fin-projection-zero" d={'M 5 '+y(0n)+' H 235'}/>}
+   <path className="fin-projection-line" d={line}/>
+   {points.map(({x,y,label})=><circle key={label} cx={x} cy={y} r={3}><title>{label}</title></circle>)}
+  </svg>
+  <figcaption><span>Saldo rilevato</span><time dateTime={end[0]}>{date(end[0])}</time></figcaption>
+ </figure>;
+}
 const types:Record<string,string>={current:'Conto corrente',savings:'Risparmio',cash:'Cassa',other:'Altro'};
 export default function PersonalFinance({client='personal'}:{client?:string}){
  const [data,setData]=useState<Data>(empty),[account,setAccount]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[message,setMessage]=useState(''),[editor,setEditor]=useState<Editor|null>(null);
@@ -23,6 +55,7 @@ export default function PersonalFinance({client='personal'}:{client?:string}){
  function field(key:string,value:string){setEditor(old=>old?{...old,fields:{...old.fields,[key]:value}}:null);}
  function open(kind:Editor['kind'],m?:Movement){setError('');setEditor({kind,id:kind==='recurrence'?crypto.randomUUID():m?.id,fields:kind==='instructions'?{markdown:data.customMarkdown}:kind==='account'?{code:'',name:'',currency:'EUR',accountType:'current',openingBalance:'',date:today()}:kind==='balance'?{balance:'',date:today(),notes:''}:{dayOfMonth:String(Number(today().slice(-2))),endDate:'',date:m?.date??today(),description:m?.description??'',value:m?.amount.replace('-','')??'',direction:m?m.amount.startsWith('-')?'expense':'income':'expense',counterparty:m?.counterparty??'',category:m?.category??'',notes:m?.notes??'',context:m?.case_id?'case:'+m.case_id:m?.project_id?'project:'+m.project_id:''}});}
  function submit(){if(!editor)return;const f=editor.fields;if(editor.kind==='instructions'){void save({action:'instructions',text:f.markdown});return;}if(editor.kind==='transaction'||editor.kind==='recurrence'){if(!/^\d+([.,]\d{1,2})?$/.test(f.value.trim())){setError('Inserisci un importo positivo con al massimo due decimali.');return;}const [contextKind,contextId]=f.context.split(':');void save({...f,action:editor.kind==='recurrence'?'recurrence':editor.id?'edit-transaction':'transaction',id:editor.id,amount:(f.direction==='expense'?'-':'')+f.value.trim(),contextKind,contextId});}else void save({...f,action:editor.kind});}
+ const {totals,missing}=summarizeAccountBalances(data.accountBalances);
  const current=data.balances[0],currency=data.selected?.currency??'EUR',planned=data.transactions.filter(t=>t.status==='planned'),disabled=busy||loading||!data.selected?.is_active,now=today();
  const limit=new Date(now+'T12:00:00Z');limit.setUTCDate(limit.getUTCDate()+30);const next30=limit.toISOString().slice(0,10);
  const incoming=planned.filter(t=>!t.amount.startsWith('-')),outgoing=planned.filter(t=>t.amount.startsWith('-'));
@@ -33,10 +66,15 @@ export default function PersonalFinance({client='personal'}:{client?:string}){
  return <section className="finance-workspace">
  <div className="fin-heading"><div><span className="eyebrow">AGENTE FINANZE</span><h2>La tua liquidità, sotto controllo.</h2><p>Conti, incassi e pagamenti in un unico spazio.</p></div><div className="fin-toolbar"><button className="fin-secondary" disabled={busy||loading} onClick={()=>open('instructions')}>Istruzioni agente</button><button className="fin-secondary" disabled={busy||loading} onClick={()=>open('account')}>＋ Aggiungi conto</button></div></div>
  {error&&!editor&&<div className="error" role="alert">{error}</div>}{message&&<p className="fin-feedback" role="status">✓ {message}</p>}
+ {data.accountBalances.length>0&&<section className="fin-account-totals" aria-label="Totale dei saldi rilevati">
+  <span>{missing.length&&totals.length?'Totale parziale dei saldi rilevati':'Totale dei saldi rilevati'}</span>
+  {totals.length>0&&<p>{totals.map(total=><strong key={total.currency}>{amount(total.balance,total.currency)}</strong>)}</p>}
+  {missing.length>0&&<small>Conti attivi senza saldo rilevato: {missing.join(', ')}.</small>}
+ </section>}
  <div className="fin-accounts" role="group" aria-label="I tuoi conti">{data.accounts.map(a=><button aria-pressed={data.selected?.id===a.id} disabled={busy||loading} className={'fin-account '+(data.selected?.id===a.id?'active':'')} key={a.id} onClick={()=>setAccount(a.id)}><span className="fin-account-icon">{a.account_type==='cash'?'▣':'▤'}</span><span><b>{a.name}</b><small>{types[a.account_type]??a.account_type} · {a.currency}{!a.is_active?' · Non attivo':''}</small></span><span className="fin-account-check">{data.selected?.id===a.id?'✓':'→'}</span></button>)}</div>
  {loading&&<p className="empty">Caricamento dei conti…</p>}{!loading&&!data.accounts.length&&<div className="fin-empty"><h3>Il primo passo è un conto.</h3><p>Aggiungilo con il saldo iniziale, poi registra le tue previsioni.</p></div>}
  {data.selected&&<>
- <div className="fin-stats"><article className="fin-stat fin-balance"><span>Saldo rilevato</span><strong>{amount(current?.balance,currency)}</strong><small>{current?'Al '+date(current.date):'Nessun saldo registrato'}</small><button disabled={disabled} onClick={()=>open('balance')}>Aggiorna saldo ↗</button></article><article className="fin-stat"><span>Incassi previsti</span><strong className="fin-positive">{amount(sumMoney(incoming.map(t=>t.amount)),currency)}</strong><small>{incoming.length} movimenti aperti</small></article><article className="fin-stat"><span>Pagamenti previsti</span><strong>{amount(sumMoney(outgoing.map(t=>t.amount.replace('-',''))),currency)}</strong><small>{outgoing.length} movimenti aperti</small></article><article className="fin-stat"><span>Saldo dopo gli impegni</span><strong>{amount(current?sumMoney([current.balance,...planned.map(t=>t.amount)]):null,currency)}</strong><small>Tutte le previsioni del conto, anche scadute</small></article></div>
+ <div className="fin-stats"><article className="fin-stat fin-balance"><span>Saldo rilevato</span><strong>{amount(current?.balance,currency)}</strong><small>{current?'Al '+date(current.date):'Nessun saldo registrato'}</small><button disabled={disabled} onClick={()=>open('balance')}>Aggiorna saldo ↗</button></article><article className="fin-stat"><span>Incassi previsti</span><strong className="fin-positive">{amount(sumMoney(incoming.map(t=>t.amount)),currency)}</strong><small>{incoming.length} movimenti aperti</small></article><article className="fin-stat"><span>Pagamenti previsti</span><strong>{amount(sumMoney(outgoing.map(t=>t.amount.replace('-',''))),currency)}</strong><small>{outgoing.length} movimenti aperti</small></article><article className="fin-stat"><span>Saldo dopo gli impegni</span><strong>{amount(current?sumMoney([current.balance,...planned.map(t=>t.amount)]):null,currency)}</strong><small>Tutte le previsioni del conto, anche scadute</small><ProjectedBalanceChart current={current} planned={planned} currency={currency}/></article></div>
  <section className="fin-recurrences"><div className="fin-ledger-heading"><div><span className="eyebrow">RICORRENTI MENSILI</span><h3>Incassi e pagamenti che si ripetono</h3></div><button className="primary" disabled={disabled} onClick={()=>open('recurrence')}>＋ Nuova ricorrenza</button></div><p className="fin-help">Le scadenze vengono preparate fino alla fine del dodicesimo mese, incluso quello attuale, e prolungate quando apri Finanze. Nessun movimento viene segnato automaticamente come pagato o incassato. Nei mesi più corti, il giorno 29, 30 o 31 diventa l’ultimo del mese.</p>{data.recurrences.length?<div className="fin-recurring-list">{data.recurrences.map(r=><article key={r.id}><div><b>{r.description}</b><small>Ogni mese il {r.day_of_month} · dal {date(r.start_date)}{r.end_date?' al '+date(r.end_date):''} · {r.active?'Attiva':'In pausa'}</small></div><strong className={!r.amount.startsWith('-')?'fin-positive':''}>{amount(r.amount,currency)}</strong><button disabled={disabled} onClick={()=>void save({action:'recurrence-toggle',id:r.id,active:!r.active})}>{r.active?'Metti in pausa':'Riattiva'}</button></article>)}</div>:<p className="fin-help">Nessuna ricorrenza. Puoi aggiungere, ad esempio, l’affitto al giorno 1 o lo stipendio al giorno 10.</p>}<p className="fin-help">La pausa annulla le scadenze future ancora previste e conserva lo storico. La riattivazione riparte da oggi. I movimenti già eseguiti restano invariati.</p></section>
  <div className="fin-ledger"><div className="fin-ledger-heading"><div><span className="eyebrow">SCADENZIARIO</span><h3>Incassi e pagamenti</h3></div><div className="fin-toolbar"><button className="fin-refresh" aria-label="Ricarica finanze" disabled={busy||loading} onClick={()=>{setError('');load(data.selected?.id??'').catch(e=>setError(e.message));}}>↻</button><button className="primary" disabled={disabled} onClick={()=>open('transaction')}>＋ Nuovo movimento</button></div></div>
  <div className="fin-tabs" role="group" aria-label="Stato dei movimenti">{[['planned','Previsti'],['confirmed','Eseguiti'],['cancelled','Annullati'],['all','Tutti']].map(([key,label])=><button key={key} aria-pressed={status===key} onClick={()=>setStatus(key)}>{label}<span>{data.transactions.filter(t=>key==='all'||t.status===key).length}</span></button>)}</div>

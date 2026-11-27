@@ -21,6 +21,7 @@ import {editorialPlanReply,handlesEditorialRequest,isEditorialRequest} from '@/l
 import {consultingIntent,consultingSummary,findConsultingProject,recentConsultingProject,switchDate} from '@/lib/consulting-chat';
 import {scheduledConsultingSwitch,saveConsultingSwitch} from '@/lib/consulting-switch-store';
 import {workflow} from '@/lib/workflow-store';
+import {calendarEveningRequest,calendarEveningRange,firstFreeEvening} from '@/lib/calendar-chat';
 import {calendarCreateRequest,calendarEventText,calendarSearch,cancelsCalendarDraft,confirmsCalendarDraft,findCalendarEvents,parseCalendarDraft} from '@/lib/calendar-chat';
 export const runtime='nodejs';
 export const maxDuration=60;
@@ -54,6 +55,25 @@ export async function POST(req:NextRequest){try{
   if(b.action==='book'){if(!s.enabledAgents?.includes('calendar'))throw Error('Calendario non attivo per questo cliente.');if(!s.messages.some(m=>m.slots?.includes(b.start)))throw Error('Seleziona uno slot proposto dal calendario.');const event=makeEvent(b.start,s.events,b.title);await checkPersonalCalendarConflicts(b.client,event);s.events.push(event);s.messages.push({id:crypto.randomUUID(),role:'assistant',agent:'calendar',mode:'deterministic',text:`Appuntamento confermato per ${event.start.slice(0,10)} alle ${event.start.slice(11,16)}.`});return {ok:true};}
   if(b.action!=='chat'||typeof b.text!=='string'||!b.text.trim()||b.text.length>4000)throw Error('Messaggio non valido.');
   const text=b.text.trim();const previous=[...s.messages].reverse().find(m=>m.role==='assistant');
+  if(b.client==='personal'&&s.enabledAgents?.includes('calendar')&&calendarEveningRequest(text)){
+   const now=new Date();
+   const range=calendarEveningRange(text,now);
+   let reply='Indica una data valida, per esempio «Dimmi la prima sera libera dopo il 9 dicembre».';
+   if(range){
+    let source;
+    try{source=await readSecondBrain('calendar',range);}catch{}
+    if(source?.status!=='connected'){
+     reply='Non riesco a verificare il calendario storico. Riprova quando è disponibile per individuare la prima sera libera.';
+    }else{
+     const day=firstFreeEvening([...s.events,...source.events],range,now);
+     reply=day
+      ? 'La prima sera libera è il '+day.split('-').reverse().join('/')+', dalle 19:00 alle 23:00.'
+      : 'Non risultano sere libere dalle 19:00 alle 23:00 nei 90 giorni a partire dal '+range.start.split('-').reverse().join('/')+'.';
+    }
+   }
+   s.messages.push({id:crypto.randomUUID(),role:'user',text},{id:crypto.randomUUID(),role:'assistant',agent:'calendar',mode:'deterministic',text:reply});
+   return {ok:true};
+  }
   const searchRequest=calendarSearch(text);
   const draft=previous?.calendarDraft;
   const confirmDraft=confirmsCalendarDraft(text);

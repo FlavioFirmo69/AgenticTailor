@@ -53,6 +53,47 @@ export function findCalendarEvents(events:Event[],query:NonNullable<ReturnType<t
   return title.includes(term);
  }).sort((a,b)=>a.start.localeCompare(b.start)||a.title.localeCompare(b.title,'it'));
 }
+const eveningRequest=/\bprima\s+sera\s+(?:disponibile|libera)\s+dopo\s+(?:(?:il|l['’])\s*)?(.+?)\s*[.!?]*$/i;
+const months='gennaio febbraio marzo aprile maggio giugno luglio agosto settembre ottobre novembre dicembre'.split(' ');
+export const calendarEveningRequest=(text:string)=>eveningRequest.test(text);
+
+function addDays(day:string,days:number){
+ return new Date(Date.parse(day)+days*86400000).toISOString().slice(0,10);
+}
+
+export function calendarEveningRange(text:string,now=new Date()){
+ const value=text.match(eveningRequest)?.[1]?.toLowerCase();
+ if(!value)return;
+ const today=dayFor('oggi',now);
+ const named=value.match(/^(\d{1,2})\s+([a-z]+)(?:\s+(\d{4}))?$/);
+ let reference:string;
+ try{
+  if(named){
+   const month=months.indexOf(named[2])+1;
+   if(!month)return;
+   const suffix='-'+String(month).padStart(2,'0')+'-'+named[1].padStart(2,'0');
+   let year=Number(named[3]??today.slice(0,4));
+   if(!named[3]&&year+suffix<today)year++;
+   reference=dayFor(year+suffix,now);
+  }else if(/^(?:oggi|domani|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})$/.test(value)){
+   reference=chatDay(value,now);
+  }else return;
+ }catch{return;}
+ const start=[today,addDays(reference,1)].sort()[1];
+ return {start,end:addDays(start,89)};
+}
+
+export function firstFreeEvening(events:Event[],range:{start:string;end:string},now=new Date()){
+ const localNow=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome',dateStyle:'short',timeStyle:'medium'}).format(now).replace(' ','T');
+ for(let day=range.start;day<=range.end;day=addDays(day,1)){
+  const start=day+'T19:00:00',end=day+'T23:00:00';
+  if(start<localNow)continue;
+  const occupied=events.some(event=>!event.allDay&&event.blocking!==false&&event.start<end&&
+   (event.endKnown===false?event.start.slice(0,10)===day:event.end>start));
+  if(!occupied)return day;
+ }
+}
+
 export function calendarEventText(event:Event){
  return event.start.slice(0,10)+' · '+(event.allDay?'Tutto il giorno':event.start.slice(11,16))+' — '+event.title;
 }

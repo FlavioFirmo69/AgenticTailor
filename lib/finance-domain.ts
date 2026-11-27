@@ -20,8 +20,7 @@ export function isBalanceTotalRequest(text:string){
 
 export type AccountBalance = {name:string;currency:string;balance:string|null};
 
-export function balanceTotalAnswer(accounts:AccountBalance[]):string {
- if(!accounts.length)return 'Non ci sono conti attivi registrati in questo ambiente.';
+export function summarizeAccountBalances(accounts:AccountBalance[]){
  const byCurrency=new Map<string,string[]>();
  const missing:string[]=[];
  for(const account of accounts){
@@ -30,11 +29,15 @@ export function balanceTotalAnswer(accounts:AccountBalance[]):string {
   amounts.push(account.balance);
   byCurrency.set(account.currency,amounts);
  }
- const totals=[...byCurrency].sort(([a],[b])=>a.localeCompare(b)).map(([currency,amounts])=>
-  sumMoney(amounts).replace('.',',')+' '+currency
- );
+ const totals=[...byCurrency].sort(([a],[b])=>a.localeCompare(b)).map(([currency,amounts])=>({currency,balance:sumMoney(amounts)}));
+ return {totals,missing};
+}
+
+export function balanceTotalAnswer(accounts:AccountBalance[]):string {
+ if(!accounts.length)return 'Non ci sono conti attivi registrati in questo ambiente.';
+ const {totals,missing}=summarizeAccountBalances(accounts);
  const summary=totals.length
-  ? [missing.length?'Totale parziale dei saldi rilevati':'Totale dei saldi rilevati',...totals].join('\n')
+  ? [missing.length?'Totale parziale dei saldi rilevati':'Totale dei saldi rilevati',...totals.map(({balance,currency})=>balance.replace('.',',')+' '+currency)].join('\n')
   : 'Nessun saldo rilevato per i conti attivi.';
  return missing.length?summary+'\n\nConti senza saldo rilevato: '+missing.join(', ')+'.':summary;
 }
