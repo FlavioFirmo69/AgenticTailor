@@ -8,5 +8,21 @@ export function externalEvent(row:Record<string,unknown>):ExternalEvent{
  const start=time?date+'T'+time:date+'T00:00:00';
  return {id:'sb2:'+String(row.id),title:String(row.title),start,end:!time?next+'T00:00:00':end?date+'T'+end:start,allDay:!time,source:'second-brain',endKnown:!time||Boolean(end),location:String(row.location??''),status:String(row.status??'')};
 }
-export function checkExternalConflicts(start:string,end:string,events:ExternalEvent[]){for(const e of events){if(e.allDay||e.blocking===false)continue;if(!e.endKnown&&e.start.slice(0,10)===start.slice(0,10)&&end>e.start)throw Error('Un impegno in agenda non ha un orario di fine: verifica la durata prima di prenotare.');if(start<e.end&&end>e.start)throw Error('Orario già occupato da un impegno in agenda.');}}
+const calendarSourceLabels:Record<ExternalEvent['source'],string>={
+ 'second-brain':'Calendario storico (Second Brain)',case:'Pratiche',project:'Commesse'
+};
 
+export function checkExternalConflicts(start:string,end:string,events:ExternalEvent[]){
+ for(const event of events){
+  if(event.allDay||event.blocking===false)continue;
+  const date=event.start.slice(0,10);
+  const day=date.split('-').reverse().join('/');
+  const details='«'+event.title+'» · '+day+' · '+calendarSourceLabels[event.source];
+  if(!event.endKnown&&date===start.slice(0,10)&&end>event.start){
+   throw Error(details+': inizio alle '+event.start.slice(11,16)+', orario di fine mancante. Non posso verificare se si sovrappone al nuovo appuntamento. Completa l’orario di fine nel modulo di origine.');
+  }
+  if(start<event.end&&end>event.start){
+   throw Error(details+': orario occupato dalle '+event.start.slice(11,16)+' alle '+event.end.slice(11,16)+'. Scegli un altro orario.');
+  }
+ }
+}

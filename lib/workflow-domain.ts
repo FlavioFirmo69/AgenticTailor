@@ -10,11 +10,11 @@ export function validateMember(b:Record<string,unknown>){
  if(b.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email))throw Error('Email non valida.');
  return {name:b.name.trim(),role:b.role.trim(),email:b.email.trim(),active:b.active};
 }
-export function validateTask(b:Record<string,unknown>){
+export function validateTask(b:Record<string,unknown>,allowUnassignedCompleted=false){
  if(!taskStatuses.includes(b.status as WorkTask['status'])||typeof b.note!=='string'||b.note.length>3000)throw Error('Stato o nota non validi.');
  if(b.status==='Non applicabile'&&!b.note.trim())throw Error('Indicare il motivo per cui il task non è applicabile.');
  const assigneeId=b.assigneeId||null;if(assigneeId!==null&&(typeof assigneeId!=='string'||!/^[0-9a-f-]{36}$/i.test(assigneeId)))throw Error('Assegnatario non valido.');
- if(['In corso','Completato'].includes(String(b.status))&&!assigneeId)throw Error('Assegnare una persona prima di avviare o completare il task.');
+ if((b.status==='In corso'||b.status==='Completato'&&!allowUnassignedCompleted)&&!assigneeId)throw Error('Assegnare una persona prima di avviare o completare il task.');
  const dueDate=b.dueDate||null;if(dueDate!==null){if(typeof dueDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(dueDate))throw Error('Scadenza non valida.');const d=new Date(dueDate+'T12:00:00Z');if(Number.isNaN(d.valueOf())||d.toISOString().slice(0,10)!==dueDate)throw Error('Scadenza non valida.');}
  if(b.title!==undefined&&(typeof b.title!=='string'||!b.title.trim()||b.title.trim().length>500))throw Error('Titolo task non valido.');return {title:typeof b.title==='string'?b.title.trim():undefined,status:b.status as WorkTask['status'],note:b.note.trim(),assigneeId:assigneeId as string|null,dueDate:dueDate as string|null};
 }
